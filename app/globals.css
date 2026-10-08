@@ -11,3 +11,5 @@
 
 /* Readable operational labels and consistent table rules. */
 *{border-color:var(--border)}.small,.text-button,.stat-top,.data-table,.distribution-label,.activity p,.notification,.form-check,.filter-bar label{font-size:14px}.badge{font-size:12px}.field-help,.data-table td small,.data-table th,.chart-legend,.timeline-entry small,.activity small,.nav-caption{font-size:12px}.stat-note{line-height:1.5}.data-table tr{border-color:var(--border)}
+
+.dummy-accounts{margin-top:22px;border:1px solid var(--border,#dce2ea);border-radius:8px;padding:14px;font-size:14px;line-height:1.5}.dummy-accounts summary{cursor:pointer;font-weight:600}.dummy-accounts p{font-size:14px;margin:12px 0}.dummy-accounts ul{list-style:none;padding:0;display:grid;gap:12px}.dummy-accounts li{display:grid;gap:2px}.dummy-accounts code{overflow-wrap:anywhere;font-size:13px}

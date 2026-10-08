@@ -32,40 +32,53 @@ export type Event = { at: string; actor: string; action: string; note?: string }
 export type Audit = Event & { id: string; object: string; role: Role; before?: string; after?: string };
 export type Research = { id: string; owner: string; title: string; institution: string; purpose: string; requestedGroups: string[]; area: string; start: string; end: string; deadline: string; status: string; access: string; accessEnd: string; download: boolean; decisions: Record<string, { status: string; note: string; groups: string[]; download?: boolean; accessEnd?: string }>; history: Event[]; versions: ResultVersion[]; extension?: { date: string; reason: string }; supportingId?: string; supportingName?: string; complete?: boolean };
 export type ResultVersion = { id: string; at: string; filename: string; fileId: string; summary: string; feedback: string; review: string; note: string };
-export type User = { id: string; name: string; email: string; role: Role; institution: string; status: string; note: string };
+export type User = { id: string; name: string; email: string; role: Role; institution: string; status: string; note: string; demoPassword: string };
 export type Filters = { from: string; to: string; area: string; hazard: string; search: string; status: string };
 export const defaultFilters: Filters = { from: '2026-01-01', to: '2026-10-08', area: 'all', hazard: 'all', search: '', status: 'all' };
 export type Report = { id: string; title: string; group: string; filters: Filters; rows: Entry[]; created: string; actor: string; templateVersion: number; sections: string[]; role: Role };
 export type ImportJob = { id: string; group: string; filename: string; count: number; at: string; actor: string; status: string; ids: string[]; fingerprint: string };
 export type Store = { schema: 1; researcherId: string; entries: Entry[]; research: Research[]; users: User[]; reports: Report[]; imports: ImportJob[]; audit: Audit[]; masters: Record<string, string[]>; settings: { maxUploadMb: number; reminderDays: number; approval: boolean }; template: { version: number; sections: string[]; history: Event[] }; reviewer: Partial<Record<Role, boolean>>; adminOperational: boolean; profile: Record<string, string> };
 export const DEMO_USER = 'PEN-001';
+// Public credentials for this browser-only prototype; never use real passwords here.
+export const DEMO_PASSWORD = 'BPBDdemo2026!';
+export function migrateDemoStore(store: Store): Store {
+  return { ...store, users: store.users.map(user => ({ ...user, demoPassword: user.demoPassword ?? DEMO_PASSWORD })) };
+}
+export function sessionUser(store: Store, id: string | null) {
+  return store.users.find(user => user.id === id && (user.status === 'Aktif' || user.role === 'PEN' && ['Menunggu Persetujuan', 'Perlu Perbaikan', 'Ditolak'].includes(user.status)));
+}
+export function authenticateDemo(store: Store, email: string, password: string) {
+  const account = store.users.find(user => user.email.trim().toLowerCase() === email.trim().toLowerCase() && user.demoPassword === password);
+  return account ? sessionUser(store, account.id) : undefined;
+}
+export const canReviewOperational = (role: Role) => role === 'ADM';
 export const referenceDate = '2026-10-08';
 export const timestamp = () => new Date().toISOString();
 export const uid = (prefix: string) => `${prefix}-${globalThis.crypto?.randomUUID?.().slice(0, 8) || Math.random().toString(36).slice(2, 10)}`;
 export function formatDate(value: string, time = false) { if (!value) return '—'; const d = new Date(value.length === 10 ? `${value}T00:00:00+07:00` : value); if (Number.isNaN(d.getTime())) return '—'; return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric', ...(time ? { hour: '2-digit', minute: '2-digit' } : {}), timeZone: 'Asia/Jakarta' }).format(d) + (time ? ' WIB' : ''); }
 export const number = (n: number) => new Intl.NumberFormat('id-ID').format(n);
 export function home(role: Role) { return role === 'PEN' ? '/peneliti' : role === 'ADM' ? '/dashboard' : `/dashboard/${roles[role].slug}`; }
-export function canRead(role: Role, group: string) { return !!groups[group] && role !== 'PEN' && (role === 'ADM' || role === 'SEK' || groups[group].role === role); }
+export function canRead(role: Role, group: string) { return !!groups[group] && role !== 'PEN' && (role === 'ADM' || groups[group].role === role); }
 export function canEdit(store: Store, role: Role, group: string) { return !!groups[group] && (role === 'ADM' ? store.adminOperational : groups[group].role === role); }
 export function isReviewer(store: Store, role: Role) { return ['PK', 'KL', 'RR'].includes(role) && !!store.reviewer[role]; }
-export function canVisit(store: Store, role: Role, path: string) {
+export function canVisit(store: Store, role: Role, path: string, accountId?: string) {
   const p = path.split('?')[0];
   if (['/', '/masuk', '/daftar-peneliti', '/pemulihan-akun', '/profil', '/bantuan', '/403', '/404', '/gangguan'].includes(p)) return true;
   if (role === 'PEN') {
-    const account = store.users.find(u => u.id === (store.researcherId || DEMO_USER));
+    const account = sessionUser(store, accountId || null);
     if (p === '/status-akun') return true;
     if (account?.status !== 'Aktif') return false;
     if (!p.startsWith('/peneliti')) return false;
     const id = p.split('/').filter(Boolean).at(-1);
-    if (id && /^(RSET|RES)-/.test(id)) return store.research.some(r => r.id === id && r.owner === (store.researcherId || DEMO_USER));
+    if (id && /^(RSET|RES)-/.test(id)) return store.research.some(r => r.id === id && r.owner === accountId);
     return true;
   }
   if (p.startsWith('/peneliti') || p === '/status-akun') return false;
   if (p.startsWith('/admin') || p === '/audit') return role === 'ADM';
   if (p.startsWith('/persetujuan')) {
-    if (!isReviewer(store, role)) return false;
+    if (!canReviewOperational(role)) return false;
     const id = p.split('/')[2];
-    return !id || store.entries.some(e => e.id === id && groups[e.group]?.role === role);
+    return !id || store.entries.some(e => e.id === id && !e.archived);
   }
   if (p.startsWith('/riset')) {
     if (!(role === 'SEK' || isReviewer(store, role))) return false;
@@ -76,13 +89,13 @@ export function canVisit(store: Store, role: Role, path: string) {
   if (p.startsWith('/data/')) { const [, , group, id, edit] = p.split('/'); return canRead(role, group) && (!(id === 'baru' || edit === 'edit') || canEdit(store, role, group)); }
   if (p.startsWith('/impor/')) { const group = p.split('/')[2]; if (group === 'pekerjaan') { const job = store.imports.find(j => j.id === p.split('/')[3]); return !!job && canRead(role, job.group); } return canEdit(store, role, group); }
   if (p === '/impor') return role !== 'ADM' || store.adminOperational;
-  if (p.startsWith('/dashboard/')) return role === 'ADM' || role === 'SEK' || p === home(role);
+  if (p.startsWith('/dashboard')) return role === 'ADM' || p === home(role);
   return true;
 }
 export function filterEntries(entries: Entry[], f: Filters) { return entries.filter(e => !e.archived && (!f.from || e.date >= f.from) && (!f.to || e.date <= f.to) && (f.area === 'all' || e.area === f.area) && (f.hazard === 'all' || e.hazard === f.hazard) && (f.status === 'all' || e.status === f.status) && (!f.search || `${e.title} ${e.id} ${e.area}`.toLocaleLowerCase('id').includes(f.search.toLocaleLowerCase('id')))); }
 export function approvedGroups(r: Research) { return [...new Set(Object.values(r.decisions).filter(d => d.status === 'Disetujui').flatMap(d => d.groups))]; }
 export function accessActive(r: Research) { return r.access === 'Aktif' && r.accessEnd >= referenceDate; }
-export function authorizedResearchEntries(store: Store, request: Research, owner = store.researcherId || DEMO_USER) { if (request.owner !== owner || !accessActive(request)) return []; return store.entries.filter(e => !e.archived && e.status === 'Disetujui' && approvedGroups(request).includes(e.group) && (request.area === 'all' || request.area === e.area) && e.date >= request.start && e.date <= request.end); }
+export function authorizedResearchEntries(store: Store, request: Research, owner: string) { if (request.owner !== owner || sessionUser(store, owner)?.status !== 'Aktif' || !accessActive(request)) return []; return store.entries.filter(e => !e.archived && e.status === 'Disetujui' && approvedGroups(request).includes(e.group) && (request.area === 'all' || request.area === e.area) && e.date >= request.start && e.date <= request.end); }
 export function validateEntry(e: Partial<Entry>): Record<string, string> { const errors: Record<string, string> = {}; if (!e.title?.trim()) errors.title = 'Nama catatan wajib diisi.'; if (!e.area || !areas.includes(e.area)) errors.area = 'Pilih kecamatan yang tersedia.'; if (!e.hazard || !hazards.includes(e.hazard)) errors.hazard = 'Pilih jenis bencana.'; if (!e.date || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || Number.isNaN(Date.parse(e.date)) || new Date(e.date).toISOString().slice(0, 10) !== e.date) errors.date = 'Masukkan tanggal yang valid.'; if (!Number.isFinite(e.amount) || Number(e.amount) < 0 || (e.unit === '%' && Number(e.amount) > 100)) errors.amount = e.unit === '%' ? 'Progres harus antara 0 dan 100.' : 'Jumlah harus berupa angka nol atau lebih.'; return errors; }
 export function seedStore(): Store {
   const entries: Entry[] = [];
@@ -105,9 +118,9 @@ export function seedStore(): Store {
     { id: 'RSET-003', owner: 'PEN-002', title: 'Analisis pemulihan fasilitas pascabencana', institution: 'Institut Riset Contoh', purpose: 'Analisis proses pemulihan fasilitas umum.', requestedGroups: ['pemulihan', 'progres'], area: 'all', start: '2026-01-01', end: '2026-09-30', deadline: '2026-10-20', status: 'Diajukan', access: 'Belum Aktif', accessEnd: '2026-10-31', download: false, decisions: {}, history: [event], versions: [] },
   ];
   return { schema: 1, researcherId: DEMO_USER, entries, research, reports: [], imports: [], users: [
-    ...(['ADM', 'PK', 'KL', 'RR', 'SEK'] as Role[]).map(role => ({ id: `USER-${role}`, name: roles[role].person, email: `${role.toLowerCase()}@bpbd.example`, role, institution: 'BPBD Kota Semarang', status: 'Aktif', note: '' })),
-    { id: DEMO_USER, name: roles.PEN.person, email: 'nadia@peneliti.example', role: 'PEN', institution: 'Universitas Contoh Semarang', status: 'Aktif', note: '' },
-    { id: 'PEN-002', name: 'Arif Setiawan (Demo)', email: 'arif@peneliti.example', role: 'PEN', institution: 'Institut Riset Contoh', status: 'Menunggu Persetujuan', note: '' },
+    ...(['ADM', 'PK', 'KL', 'RR', 'SEK'] as Role[]).map(role => ({ id: `USER-${role}`, name: roles[role].person, email: `${role.toLowerCase()}@bpbd.example`, role, institution: 'BPBD Kota Semarang', status: 'Aktif', note: '', demoPassword: DEMO_PASSWORD })),
+    { id: DEMO_USER, name: roles.PEN.person, email: 'nadia@peneliti.example', role: 'PEN', institution: 'Universitas Contoh Semarang', status: 'Aktif', note: '', demoPassword: DEMO_PASSWORD },
+    { id: 'PEN-002', name: 'Arif Setiawan (Demo)', email: 'arif@peneliti.example', role: 'PEN', institution: 'Institut Riset Contoh', status: 'Menunggu Persetujuan', note: '', demoPassword: DEMO_PASSWORD },
   ], audit: [
     { id: 'AUD-001', role: 'KL', at: '2026-10-08T08:45:00+07:00', actor: roles.KL.person, action: 'Data kejadian diperbarui', object: 'KJD-047', before: 'Dalam penanganan', after: 'Selesai' },
     { id: 'AUD-002', role: 'SEK', at: '2026-10-07T15:30:00+07:00', actor: roles.SEK.person, action: 'Permohonan penelitian diperiksa', object: 'RSET-001' },

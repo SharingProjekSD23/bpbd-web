@@ -4,7 +4,7 @@ Acuan: `Sitemap_Halaman_Komponen_UI_BPBD.docx`, 8 Oktober 2026. Terdapat 44 tipe
 
 | Kode | Route | Implementasi |
 |---|---|---|
-| A01 | `/masuk` | Login demo dan pilihan role |
+| A01 | `/masuk` | Login individual dummy; role otomatis dari akun |
 | A02 | `/daftar-peneliti` | Pendaftaran akun baru; persetujuan kewajiban |
 | A03 | `/pemulihan-akun` | Permintaan pemulihan demo; email belum terhubung |
 | S01 | `/profil` | Profil akun aktif |
@@ -21,8 +21,8 @@ Acuan: `Sitemap_Halaman_Komponen_UI_BPBD.docx`, 8 Oktober 2026. Terdapat 44 tipe
 | I01 | `/impor/:jenis/baru` | Template, unggah, validasi, pratinjau, konfirmasi |
 | I02 | `/impor` | Riwayat pekerjaan |
 | I03 | `/impor/pekerjaan/:id` | Hasil batch dan jumlah data |
-| V01 | `/persetujuan` | Antrean bidang dengan permission peninjau |
-| V02 | `/persetujuan/:id` | Setujui, perbaiki, tolak dengan catatan |
+| V01 | `/persetujuan` | Antrean semua bidang; validasi sementara Admin inti |
+| V02 | `/persetujuan/:id` | Keputusan Admin inti: setujui, minta perbaikan, tolak dengan catatan |
 | L01 | `/laporan` | Daftar/arsip laporan |
 | L02 | `/laporan/baru` | Filter, pratinjau, snapshot laporan |
 | L03 | `/laporan/:id` | Metadata dan unduh Word/PDF |
@@ -34,7 +34,7 @@ Acuan: `Sitemap_Halaman_Komponen_UI_BPBD.docx`, 8 Oktober 2026. Terdapat 44 tipe
 | M01 | `/admin/pengguna` | Daftar pengguna |
 | M02 | `/admin/pengguna/baru`, `/admin/pengguna/:id` | Form/detail akun dan ringkasan dampak |
 | M03 | `/admin/pendaftaran` | Persetujuan akun melalui dialog review |
-| M04 | `/admin/hak-akses` | Permission peninjau dan tambahan operasional Admin |
+| M04 | `/admin/hak-akses` | Peninjau penelitian dan tambahan operasional Admin; validasi data oleh Admin inti |
 | M05 | `/admin/master/:jenis` | Referensi wilayah, bencana, satuan |
 | M06 | `/admin/pengaturan` | Batas unggahan, pengingat, approval demo |
 | M07 | `/admin/akses-riset` | Aktivasi, akhir, pencabutan izin yang disetujui bidang |

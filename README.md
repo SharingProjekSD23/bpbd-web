@@ -11,9 +11,25 @@ npm.cmd ci
 npm.cmd run dev
 ```
 
-Buka `http://127.0.0.1:5173`. Halaman awal menampilkan dashboard demo Admin. Gunakan **Lihat sebagai** untuk meninjau enam role. Menu akun menyediakan Keluar dan halaman login.
+Buka `http://127.0.0.1:5173`. Halaman awal adalah login bersama; role ditentukan otomatis dari akun. Gunakan **Ganti Akun** atau menu akun **Keluar** untuk mencoba aktor lain. Daftar akun juga tersedia pada halaman login.
 
-Akun login demo: `demo@bpbd.test` / `BPBDdemo2026!`.
+Sandi awal semua akun dummy: **`BPBDdemo2026!`**.
+
+| Aktor | Email dummy | Status awal |
+|---|---|---|
+| Admin inti / sistem | `adm@bpbd.example` | Aktif |
+| Pencegahan dan Kesiapsiagaan | `pk@bpbd.example` | Aktif |
+| Kedaruratan dan Logistik | `kl@bpbd.example` | Aktif |
+| Rehabilitasi dan Rekonstruksi | `rr@bpbd.example` | Aktif |
+| Sekretariat | `sek@bpbd.example` | Aktif |
+| Peneliti — Nadia | `nadia@peneliti.example` | Aktif |
+| Peneliti — Arif | `arif@peneliti.example` | Menunggu Persetujuan |
+
+Satu orang memakai satu akun, dengan tepat satu role. Admin dapat membuat akun internal beserta sandi demo. Peneliti yang mendaftar memakai email dan sandi yang diisikan sendiri; akun menunggu persetujuan hanya bisa membuka status, profil, dan bantuan. Akun nonaktif tidak dapat login.
+
+Validasi data operasional sementara dilakukan **Admin inti**. Petugas mengajukan data bidangnya, Admin menyetujui/meminta perbaikan/menolak, lalu petugas memperbaiki dan mengajukan ulang bila diperlukan. Sekretariat membaca data operasional bidangnya sendiri; koordinasi administrasi penelitian tetap tersedia. Izin peninjau bidang berlaku untuk layanan penelitian.
+
+Keputusan SSO atau kredensial aplikasi masih menunggu pembahasan kantor. Rincian kesepakatan ada di [catatan diskusi](docs/CATATAN-DISKUSI-LOGIN-DAN-VALIDASI.md).
 
 ```powershell
 npm.cmd run build
@@ -27,7 +43,7 @@ Tes browser membutuhkan server dev yang berjalan dan Microsoft Edge. Konfigurasi
 ## Yang dapat dicoba
 
 - Dashboard utama serta empat dashboard bidang, filter seragam, ringkasan, grafik, alternatif tabel, dan rincian catatan.
-- Navigasi enam role, permission peninjau tambahan, pembatasan route, form, validasi, draf, approval, riwayat, arsip, serta konflik versi lintas tab.
+- Login akun individual untuk enam role, permission peninjau penelitian, pembatasan route, form, validasi, draf, approval, riwayat, arsip, serta konflik versi lintas tab.
 - Impor `.xlsx` dan CSV: template, validasi, nomor baris kesalahan, pratinjau, batch atomik di penyimpanan lokal, pencegahan duplikasi, dan riwayat.
 - Pembuatan laporan: salinan data/filter/template yang tetap, unduhan Word `.docx` dan PDF asli, arsip, editor susunan template Sekretariat.
 - Pendaftaran akun peneliti baru, keputusan Admin, permohonan, keputusan per bidang, persetujuan sebagian, penerapan izin, batas unduh, masa berlaku dan perpanjangan tenggat.
@@ -40,7 +56,7 @@ Pemetaan 44 tipe halaman ada di [docs/PEMETAAN-HALAMAN.md](docs/PEMETAAN-HALAMAN
 
 Ini adalah frontend untuk meninjau UI dan alur. Autentikasi dan RBAC disimulasikan; kode/data demo di browser bukan pengamanan server. Belum ada API/database operasional, penyimpanan bersama, layanan email, atau pemindaian keamanan dokumen. Jangan memasukkan data BPBD sebenarnya.
 
-Data terstruktur disimpan dengan kunci `bpbd-demo-v1` di localStorage; berkas tersimpan di database IndexedDB `bpbd-demo-files`. Data hanya tersedia pada browser/origin yang sama. Tanggal acuan skenario adalah 8 Oktober 2026; waktu aksi memakai WIB. Seluruh data bersifat sintetis. Untuk mengulang dari awal, hapus data situs pada pengaturan browser.
+Data terstruktur disimpan dengan kunci `bpbd-demo-v1` di localStorage; berkas tersimpan di database IndexedDB `bpbd-demo-files`. Data hanya tersedia pada browser/origin yang sama. Sesi akun disimpan per tab melalui sessionStorage `bpbd-auth-user`; muat ulang mempertahankan akun sampai logout/tab ditutup. Sesi pilihan role versi lama tidak dipakai kembali. Data lama dimigrasikan dengan menambahkan sandi awal pada akun yang belum memilikinya, tanpa menghapus catatan atau mengubah status akun. Sandi demo dapat dibaca di browser dan bukan mekanisme penyimpanan sandi produksi. Tanggal acuan skenario adalah 8 Oktober 2026; waktu aksi memakai WIB. Seluruh data bersifat sintetis. Untuk mengulang dari awal, hapus data situs pada pengaturan browser.
 
 Field, definisi indikator, aturan persetujuan, dan template impor merupakan usulan demo. Template laporan belum resmi; tidak ada tanda tangan pejabat otomatis. Master tambahan disimpan sebagai usulan; pilihan form dan template demo masih mengikuti referensi v1. Pengubahan master yang sudah digunakan ditolak.
 
