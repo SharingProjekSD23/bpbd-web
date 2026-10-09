@@ -20,6 +20,8 @@ Catatan ini menyimpan arah pembahasan dengan pengguna. Keputusan yang masih tent
 ## Revisi yang diterapkan
 
 - **9 Oktober 2026:** nama bidang di tampilan menjadi **Bidang Pencegahan dan Kesiapsiagaan**, termasuk judul dashboard, label role akun, profil, daftar akun dummy, serta pengelolaan pengguna dan hak akses. Status: sudah diterapkan. Kode role `PK`, email `pk@bpbd.example`, dan alamat `/dashboard/pencegahan` tetap digunakan.
+- **9 Oktober 2026:** nama bidang Kedaruratan di tampilan menjadi **Bidang Kedaruratan dan Logistik**, termasuk judul dashboard, label role akun, profil, daftar akun dummy, serta pengelolaan pengguna dan hak akses. Status: sudah diterapkan. Kode role `KL`, email `kl@bpbd.example`, dan alamat `/dashboard/kedaruratan` tetap digunakan.
+- **9 Oktober 2026:** nama bidang Rehabilitasi di tampilan menjadi **Bidang Rehabilitasi dan Rekonstruksi**, termasuk judul dashboard, label role akun, profil, daftar akun dummy, serta pengelolaan pengguna dan hak akses. Status: sudah diterapkan. Kode role `RR`, email `rr@bpbd.example`, dan alamat `/dashboard/rehabilitasi` tetap digunakan.
 
 ## Dibawa untuk dibahas di kantor
 
@@ -51,8 +53,8 @@ Sandi awal semua akun berikut: **`BPBDdemo2026!`**. Daftar ini juga tersedia di 
 |---|---|---|
 | Admin inti / sistem | `adm@bpbd.example` | Aktif |
 | Bidang Pencegahan dan Kesiapsiagaan | `pk@bpbd.example` | Aktif |
-| Kedaruratan dan Logistik | `kl@bpbd.example` | Aktif |
-| Rehabilitasi dan Rekonstruksi | `rr@bpbd.example` | Aktif |
+| Bidang Kedaruratan dan Logistik | `kl@bpbd.example` | Aktif |
+| Bidang Rehabilitasi dan Rekonstruksi | `rr@bpbd.example` | Aktif |
 | Sekretariat | `sek@bpbd.example` | Aktif |
 | Peneliti — Nadia | `nadia@peneliti.example` | Aktif |
 | Peneliti — Arif | `arif@peneliti.example` | Menunggu Persetujuan |

@@ -2,8 +2,8 @@ export type Role = 'ADM' | 'PK' | 'KL' | 'RR' | 'SEK' | 'PEN';
 export const roles: Record<Role, { name: string; short: string; slug: string; person: string }> = {
   ADM: { name: 'Admin Sistem BPBD', short: 'Admin Sistem', slug: '', person: 'Admin Demo' },
   PK: { name: 'Bidang Pencegahan dan Kesiapsiagaan', short: 'Bidang Pencegahan dan Kesiapsiagaan', slug: 'pencegahan', person: 'Petugas Pencegahan Demo' },
-  KL: { name: 'Kedaruratan dan Logistik', short: 'Kedaruratan', slug: 'kedaruratan', person: 'Petugas Kedaruratan Demo' },
-  RR: { name: 'Rehabilitasi dan Rekonstruksi', short: 'Rehabilitasi', slug: 'rehabilitasi', person: 'Petugas Rehabilitasi Demo' },
+  KL: { name: 'Bidang Kedaruratan dan Logistik', short: 'Bidang Kedaruratan dan Logistik', slug: 'kedaruratan', person: 'Petugas Kedaruratan Demo' },
+  RR: { name: 'Bidang Rehabilitasi dan Rekonstruksi', short: 'Bidang Rehabilitasi dan Rekonstruksi', slug: 'rehabilitasi', person: 'Petugas Rehabilitasi Demo' },
   SEK: { name: 'Sekretariat BPBD', short: 'Sekretariat', slug: 'sekretariat', person: 'Petugas Sekretariat Demo' },
   PEN: { name: 'Peneliti / Akademisi', short: 'Peneliti', slug: 'peneliti', person: 'Nadia Pramesti (Demo)' },
 };

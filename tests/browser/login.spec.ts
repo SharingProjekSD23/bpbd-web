@@ -52,7 +52,7 @@ test('legacy accounts gain credentials without resetting data or enabling inacti
   await login(page, 'rr@bpbd.example');
   await expect(page.getByText('Email atau kata sandi tidak sesuai, atau akun dinonaktifkan.')).toBeVisible();
   await login(page, 'kl@bpbd.example');
-  await expect(page.getByRole('heading', { name: 'Dashboard Kedaruratan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Kedaruratan dan Logistik' })).toBeVisible();
   await page.goto('/data/kejadian/KJD-001');
   await expect(page.getByRole('heading', { name: 'Catatan lama tetap tersimpan' })).toBeVisible();
 });

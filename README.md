@@ -23,8 +23,8 @@ Sandi awal semua akun dummy: **`BPBDdemo2026!`**.
 |---|---|---|
 | Admin inti / sistem | `adm@bpbd.example` | Aktif |
 | Bidang Pencegahan dan Kesiapsiagaan | `pk@bpbd.example` | Aktif |
-| Kedaruratan dan Logistik | `kl@bpbd.example` | Aktif |
-| Rehabilitasi dan Rekonstruksi | `rr@bpbd.example` | Aktif |
+| Bidang Kedaruratan dan Logistik | `kl@bpbd.example` | Aktif |
+| Bidang Rehabilitasi dan Rekonstruksi | `rr@bpbd.example` | Aktif |
 | Sekretariat | `sek@bpbd.example` | Aktif |
 | Peneliti — Nadia | `nadia@peneliti.example` | Aktif |
 | Peneliti — Arif | `arif@peneliti.example` | Menunggu Persetujuan |
