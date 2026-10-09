@@ -14,7 +14,7 @@ Acuan: `Sitemap_Halaman_Komponen_UI_BPBD.docx`, 8 Oktober 2026. Terdapat 44 tipe
 | S05 | `/404` atau route tak dikenal | Halaman tidak ditemukan |
 | S06 | `/gangguan` | Keadaan layanan gagal |
 | D01 | `/dashboard` | Ringkasan utama sesuai cakupan |
-| D02 | `/dashboard/:bidang` | Pencegahan, kedaruratan, rehabilitasi, sekretariat |
+| D02 | `/dashboard/:bidang` | Bidang Pencegahan dan Kesiapsiagaan (`pencegahan`), kedaruratan, rehabilitasi, sekretariat |
 | G01 | `/data/:jenis` | Daftar, filter, pencarian, paginasi |
 | G02 | `/data/:jenis/:id` | Detail, dokumen, riwayat, arsip berizin |
 | G03 | `/data/:jenis/baru`, `/data/:jenis/:id/edit` | Form, validasi, ringkasan, guard perubahan, konflik versi |

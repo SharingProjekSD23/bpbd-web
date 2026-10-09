@@ -6,10 +6,14 @@ Implementasi berdasarkan PRD UI/UX versi 1.0 dan Sitemap Halaman dan Komponen UI
 
 Prasyarat: Node.js 24 dan npm. Buka terminal pada folder `bpbd-web`.
 
+Sebelum memasang ulang dependensi, hentikan semua server lokal proyek ini dengan **Ctrl+C** di terminal yang menjalankannya. Pada Windows, server yang masih aktif dapat mengunci berkas di `node_modules`, menyebabkan `npm.cmd ci` gagal dengan `EPERM` dan meninggalkan instalasi tidak lengkap.
+
 ```powershell
 npm.cmd ci
 npm.cmd run dev
 ```
+
+`npm.cmd ci` diperlukan untuk pemasangan awal atau pemulihan dependensi. Untuk menjalankan proyek sehari-hari, cukup `npm.cmd run dev`. Jika instalasi gagal, selesaikan error instalasi terlebih dahulu sebelum menyalakan server.
 
 Buka `http://127.0.0.1:5173`. Halaman awal adalah login bersama; role ditentukan otomatis dari akun. Gunakan **Ganti Akun** atau menu akun **Keluar** untuk mencoba aktor lain. Daftar akun juga tersedia pada halaman login.
 
@@ -18,7 +22,7 @@ Sandi awal semua akun dummy: **`BPBDdemo2026!`**.
 | Aktor | Email dummy | Status awal |
 |---|---|---|
 | Admin inti / sistem | `adm@bpbd.example` | Aktif |
-| Pencegahan dan Kesiapsiagaan | `pk@bpbd.example` | Aktif |
+| Bidang Pencegahan dan Kesiapsiagaan | `pk@bpbd.example` | Aktif |
 | Kedaruratan dan Logistik | `kl@bpbd.example` | Aktif |
 | Rehabilitasi dan Rekonstruksi | `rr@bpbd.example` | Aktif |
 | Sekretariat | `sek@bpbd.example` | Aktif |

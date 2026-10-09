@@ -17,6 +17,10 @@ Catatan ini menyimpan arah pembahasan dengan pengguna. Keputusan yang masih tent
 - Bidang terkait tetap menjadi pemilik dan pemasok data operasional.
 - **Diterapkan sementara pada demo:** validasi data operasional dari semua bidang ditangani Admin inti (akun role ADM). Menu Persetujuan Data hanya tersedia bagi Admin inti. Data yang memerlukan koreksi dikembalikan ke bidang asal untuk diperbaiki. Tombol Setujui Data, Minta Perbaikan, dan Tolak dipakai untuk menguji alur. Ini belum menetapkan apakah kewenangan Admin inti di sistem nyata mencakup kelengkapan saja atau substansi.
 
+## Revisi yang diterapkan
+
+- **9 Oktober 2026:** nama bidang di tampilan menjadi **Bidang Pencegahan dan Kesiapsiagaan**, termasuk judul dashboard, label role akun, profil, daftar akun dummy, serta pengelolaan pengguna dan hak akses. Status: sudah diterapkan. Kode role `PK`, email `pk@bpbd.example`, dan alamat `/dashboard/pencegahan` tetap digunakan.
+
 ## Dibawa untuk dibahas di kantor
 
 - Tentukan apakah akun pegawai memakai akun kerja yang sudah ada (misalnya SSO) atau kredensial yang dikelola aplikasi.
@@ -46,7 +50,7 @@ Sandi awal semua akun berikut: **`BPBDdemo2026!`**. Daftar ini juga tersedia di 
 | Aktor | Email dummy | Status awal |
 |---|---|---|
 | Admin inti / sistem | `adm@bpbd.example` | Aktif |
-| Pencegahan dan Kesiapsiagaan | `pk@bpbd.example` | Aktif |
+| Bidang Pencegahan dan Kesiapsiagaan | `pk@bpbd.example` | Aktif |
 | Kedaruratan dan Logistik | `kl@bpbd.example` | Aktif |
 | Rehabilitasi dan Rekonstruksi | `rr@bpbd.example` | Aktif |
 | Sekretariat | `sek@bpbd.example` | Aktif |

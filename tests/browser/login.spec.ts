@@ -22,13 +22,13 @@ test('anonymous access, old role sessions, invalid login, reload and logout', as
   await login(page, 'pk@bpbd.example', 'salah');
   await expect(page.getByRole('button', { name: 'Menu akun' })).toHaveCount(0);
   await login(page, 'PK@BPBD.EXAMPLE');
-  await expect(page.getByRole('heading', { name: 'Dashboard Pencegahan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Pencegahan dan Kesiapsiagaan' })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Dashboard Pencegahan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Pencegahan dan Kesiapsiagaan' })).toBeVisible();
   await page.goto('/data/kejadian');
   await expect(page.getByRole('heading', { name: 'Akses dibatasi' })).toBeVisible();
   await page.getByRole('button', { name: 'Kembali ke Beranda' }).click();
-  await expect(page.getByRole('heading', { name: 'Dashboard Pencegahan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Pencegahan dan Kesiapsiagaan' })).toBeVisible();
   await page.getByRole('button', { name: 'Menu akun' }).click();
   await page.getByRole('menuitem', { name: 'Keluar' }).click();
   await expect(page.getByRole('heading', { name: 'Selamat datang kembali' })).toBeVisible();
