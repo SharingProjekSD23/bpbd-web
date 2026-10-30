@@ -1,5 +1,7 @@
 # Pemetaan sitemap ke prototipe
 
+> Pembaruan 27 Oktober 2026: route tampilan tetap digunakan, dengan penyimpanan dan login versi lokal melalui backend PostgreSQL. Rincian ada di [PostgreSQL lokal](POSTGRESQL-LOKAL.md). Catatan pengujian awal di bagian bawah merupakan dokumentasi tahap prototipe browser.
+
 Acuan: `Sitemap_Halaman_Komponen_UI_BPBD.docx`, 8 Oktober 2026. Terdapat 44 tipe halaman. Route detail/form memakai data dan pola bersama.
 
 | Kode | Route | Implementasi |

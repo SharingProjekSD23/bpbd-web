@@ -1,5 +1,7 @@
 # Catatan Diskusi Login, Role, dan Validasi Data
 
+> Catatan historis prototipe browser. Sejak 27 Oktober 2026, versi lokal menggunakan backend PostgreSQL, hash password, dan cookie sesi. Rincian implementasi terbaru ada di [PostgreSQL lokal](POSTGRESQL-LOKAL.md); arahan organisasi yang belum final di bawah tetap menjadi bahan pembahasan.
+
 **Tanggal:** 8 Oktober 2026  
 **Status:** Kesepakatan login dan arahan sementara diterapkan pada prototipe dummy; aturan sistem nyata belum final.
 

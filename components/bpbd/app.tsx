@@ -8,18 +8,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AppContext, useApp } from './context';
+import { AppContext, useApp, type Registration } from './context';
 import { Action } from './shared';
 import Dashboard from './dashboard';
 import { Approvals, DataDetail, DataForm, DataList, ImportPage, Reports, SystemPage } from './operations';
 import { AccessDetail, ResearchDetail, ResearchForm, ResearchHome, ResearchList, ResultDetail, ResultForm } from './research';
 import { ApplyAccess, AuditPage, Masters, Permissions, Settings as SettingsPage, UsersPage } from './admin';
 import { AccountStatus, Auth, Help, Profile } from './auth';
-import { authenticateDemo, canEdit, canRead, canReviewOperational, canVisit, migrateDemoStore, sessionUser, formatDate, groups, home, isReviewer, referenceDate, roles, seedStore, timestamp, uid, type Filters, type Role, type Store } from '@/lib/bpbd/model';
-const STORAGE_KEY = 'bpbd-demo-v1';
-const SESSION_KEY = 'bpbd-auth-user';
+import { canEdit, canRead, canReviewOperational, canVisit, sessionUser, formatDate, groups, home, isReviewer, referenceDate, roles, seedStore, type Filters, type Role, type Store } from '@/lib/bpbd/model';
+import { api, RequestError, type Snapshot } from '@/lib/bpbd/api';
+function emptyStore(): Store { const store = seedStore(); return { ...store, users: [], entries: [], research: [], reports: [], imports: [], audit: [] }; }
 export default function BPBDApp() {
- const [store,setStore] = useState<Store>(seedStore);
+ const [store,setStore] = useState<Store>(emptyStore);
  const [userId,setUserId] = useState<string|null>(null);
  const user = sessionUser(store,userId);
  const role:Role = user?.role || 'PEN';
@@ -32,58 +32,82 @@ export default function BPBDApp() {
  const userIdRef = useRef<string|null>(null);
  const filters = useRef(new Map<string,Filters>());
  const [storageWarning,setStorageWarning] = useState('');
+ const revisionRef = useRef(0);
+ const savingRef = useRef(false);
+ const authGeneration = useRef(0);
+ const applySnapshot = useCallback((snapshot:Snapshot)=>{
+  const next=snapshot.store||emptyStore();stateRef.current=next;setStore(next);
+  revisionRef.current=snapshot.revision;userIdRef.current=snapshot.userId;setUserId(snapshot.userId);setStorageWarning('');
+ },[]);
+ const resetSession = useCallback(()=>{authGeneration.current++;applySnapshot({store:null,revision:0,userId:null});filters.current.clear();},[applySnapshot]);
  const setDirty = useCallback((value:boolean)=>{dirtyRef.current=value;setDirtyState(value);},[]);
  const commitNavigation = useCallback((path:string)=>{window.history.pushState({},'',path);setLocation(path);window.scrollTo({top:0,behavior:'instant'});},[]);
- const clearSession = useCallback(()=>{userIdRef.current=null;setUserId(null);filters.current.clear();try{sessionStorage.removeItem(SESSION_KEY);}catch{}},[]);
+ const clearSession = useCallback(async()=>{try{await api('logout','POST');resetSession();}catch(e){toast.error((e as Error).message);throw e;}},[resetSession]);
  const navigate = useCallback((path:string)=>{
   if(!path.startsWith('/')||path.startsWith('//'))return;
-  const go=()=>{if(path==='/masuk')clearSession();commitNavigation(path);};
+  const go=async()=>{try{if(path==='/masuk')await clearSession();commitNavigation(path);}catch{}};
   if(dirtyRef.current)setPending(()=>go);else go();
  },[commitNavigation,clearSession]);
- const signIn = useCallback((email:string,password:string)=>{
-  const account=authenticateDemo(stateRef.current,email,password);
-  if(!account)return false;
-  userIdRef.current=account.id;setUserId(account.id);filters.current.clear();
-  try{sessionStorage.setItem(SESSION_KEY,account.id);}catch{setStorageWarning('Sesi hanya berlaku sampai halaman dimuat ulang.');}
-  commitNavigation(account.role==='PEN'&&account.status!=='Aktif'?'/status-akun':home(account.role));
-  return true;
- },[commitNavigation]);
- const mutate = useCallback((update:(s:Store)=>void,action?:string,object?:string)=>{
+ const acceptLogin = useCallback((snapshot:Snapshot)=>{
+  authGeneration.current++;applySnapshot(snapshot);filters.current.clear();
+  const account=snapshot.store?.users.find(u=>u.id===snapshot.userId);
+  if(account)commitNavigation(account.role==='PEN'&&account.status!=='Aktif'?'/status-akun':home(account.role));
+ },[applySnapshot,commitNavigation]);
+ const signIn = useCallback(async(email:string,password:string)=>{
+  try{acceptLogin(await api<Snapshot>('login','POST',{email,password}));return true;}
+  catch(e){toast.error((e as Error).message);return false;}
+ },[acceptLogin]);
+ const register = useCallback(async(input:Registration)=>{
+  try{acceptLogin(await api<Snapshot>('register','POST',input));return true;}
+  catch(e){toast.error((e as Error).message);return false;}
+ },[acceptLogin]);
+ const mutate = useCallback(async(update:(s:Store)=>void,action='',object='')=>{
+  if(savingRef.current){toast.error('Tunggu penyimpanan sebelumnya selesai.');return false;}
+  savingRef.current=true;
   try{
-   const actor=sessionUser(stateRef.current,userIdRef.current);
    const next=structuredClone(stateRef.current);update(next);
-   if(action)next.audit.unshift({id:uid('AUD'),at:timestamp(),actor:actor?.name||next.users.find(u=>u.id===object)?.name||'Pendaftar demo',role:actor?.role||'PEN',action,object:object||'sistem'});
-   localStorage.setItem(STORAGE_KEY,JSON.stringify(next));stateRef.current=next;setStore(next);return true;
-  }catch(e){toast.error((e as Error).message||'Perubahan belum tersimpan. Periksa penyimpanan browser.');return false;}
- },[]);
+   applySnapshot(await api<Snapshot>('state','PUT',{store:next,revision:revisionRef.current,action,object}));return true;
+  }catch(e){
+   if(e instanceof RequestError&&e.status===409){try{applySnapshot(await api<Snapshot>('state'));}catch{}}
+   if(e instanceof RequestError&&e.status===401)resetSession();
+   toast.error((e as Error).message||'Perubahan belum tersimpan di server.');return false;
+  }finally{savingRef.current=false;}
+ },[applySnapshot,resetSession]);
  useEffect(()=>{
-  try{
-   const saved=localStorage.getItem(STORAGE_KEY);
-   if(saved){const parsed=JSON.parse(saved);if(parsed.schema===1&&Array.isArray(parsed.entries)&&Array.isArray(parsed.research)&&Array.isArray(parsed.users)){
-    const migrated=migrateDemoStore(parsed);stateRef.current=migrated;setStore(migrated);
-   }else setStorageWarning('Penyimpanan demo memiliki versi berbeda. Data awal digunakan untuk sesi ini.');}
-   // The legacy role picker was not a login session; never restore it as one.
-   sessionStorage.removeItem('bpbd-role');sessionStorage.removeItem('bpbd-session');
-   const signingIn=['/masuk','/daftar-peneliti','/pemulihan-akun'].includes(window.location.pathname);if(signingIn)sessionStorage.removeItem(SESSION_KEY);const account=signingIn?undefined:sessionUser(stateRef.current,sessionStorage.getItem(SESSION_KEY));
-   userIdRef.current=account?.id||null;setUserId(account?.id||null);
-  }catch{setStorageWarning('Penyimpanan lokal tidak tersedia atau tidak dapat dibaca.');}
-  const current=window.location.pathname+window.location.search;
-  const account=sessionUser(stateRef.current,userIdRef.current);
-  const publicPage=['/masuk','/daftar-peneliti','/pemulihan-akun'].includes(window.location.pathname);
-  const target=current==='/'?(account?(account.role==='PEN'&&account.status!=='Aktif'?'/status-akun':home(account.role)):'/masuk'):!account&&!publicPage?'/masuk':current;
-  if(target!==current)window.history.replaceState({},'',target);
-  setLocation(target);setReady(true);
- },[]);
+  let cancelled=false;
+  async function load(){
+   try{const snapshot=await api<Snapshot>('state');if(cancelled)return;applySnapshot(snapshot);}
+   catch(e){if(cancelled)return;if(!(e instanceof RequestError&&e.status===401))setStorageWarning((e as Error).message);}
+   if(cancelled)return;
+   const current=window.location.pathname+window.location.search;
+   const account=sessionUser(stateRef.current,userIdRef.current);
+   const publicPage=['/masuk','/daftar-peneliti','/pemulihan-akun'].includes(window.location.pathname);
+   const target=account&&(current==='/'||current==='/masuk')?(account.role==='PEN'&&account.status!=='Aktif'?'/status-akun':home(account.role)):!account&&!publicPage?'/masuk':current;
+   if(target!==current)window.history.replaceState({},'',target);
+   setLocation(target);setReady(true);
+  }
+  void load();return()=>{cancelled=true;};
+ },[applySnapshot]);
  useEffect(()=>{
-  if(ready&&userId&&!user){clearSession();setDirty(false);window.history.replaceState({},'','/masuk');setLocation('/masuk');toast.error('Sesi berakhir karena akun tidak tersedia atau dinonaktifkan.');}
- },[ready,userId,user,clearSession,setDirty]);
+  if(ready&&userId&&!user){resetSession();setDirty(false);window.history.replaceState({},'','/masuk');setLocation('/masuk');toast.error('Sesi berakhir karena akun tidak tersedia atau dinonaktifkan.');}
+ },[ready,userId,user,resetSession,setDirty]);
  useEffect(()=>{
   const pop=()=>{const target=window.location.pathname+window.location.search;if(dirtyRef.current){window.history.pushState({},'',location);setPending(()=>()=>commitNavigation(target));}else setLocation(target);};
   const unload=(e:BeforeUnloadEvent)=>{if(dirtyRef.current){e.preventDefault();e.returnValue='';}};
-  const storage=(e:StorageEvent)=>{if(e.key===STORAGE_KEY&&e.newValue){try{const next=JSON.parse(e.newValue);if(next.schema===1&&Array.isArray(next.users)){const migrated=migrateDemoStore(next);stateRef.current=migrated;setStore(migrated);}}catch{}}};
-  window.addEventListener('popstate',pop);window.addEventListener('beforeunload',unload);window.addEventListener('storage',storage);
-  return()=>{window.removeEventListener('popstate',pop);window.removeEventListener('beforeunload',unload);window.removeEventListener('storage',storage);};
+  window.addEventListener('popstate',pop);window.addEventListener('beforeunload',unload);
+  return()=>{window.removeEventListener('popstate',pop);window.removeEventListener('beforeunload',unload);};
  },[location,commitNavigation]);
+ useEffect(()=>{
+  let cancelled=false;
+  const refresh=async()=>{
+   if(!ready||!userIdRef.current||savingRef.current||dirtyRef.current||document.hidden)return;
+   const generation=authGeneration.current,revision=revisionRef.current;
+   try{const next=await api<Snapshot>('state');if(!cancelled&&generation===authGeneration.current&&!savingRef.current&&!dirtyRef.current&&revision===revisionRef.current){applySnapshot(next);}}
+   catch(e){if(cancelled||generation!==authGeneration.current)return;if(e instanceof RequestError&&e.status===401){resetSession();commitNavigation('/masuk');}else setStorageWarning((e as Error).message);}
+  };
+  const timer=setInterval(refresh,15000);window.addEventListener('focus',refresh);
+  return()=>{cancelled=true;clearInterval(timer);window.removeEventListener('focus',refresh);};
+ },[ready,applySnapshot,resetSession,commitNavigation]);
  useEffect(()=>{
   const context=(document as Document&{modelContext?:{registerTool:(tool:unknown,options:unknown)=>Promise<void>|void}}).modelContext;
   if(!context?.registerTool)return;
@@ -108,7 +132,7 @@ export default function BPBDApp() {
  const path=location.split('?')[0];const query=new URLSearchParams(location.split('?')[1]||'');
  const publicRoute=['/masuk','/daftar-peneliti','/pemulihan-akun'].includes(path);
  if(!ready)return <div style={{padding:40,maxWidth:1200,margin:'auto'}}><Skeleton className="h-12 w-72 mb-8"/><div className="stats-grid">{[1,2,3,4].map(n=><Skeleton key={n} className="h-36"/>)}</div><Skeleton className="h-72"/><p className="small muted" style={{marginTop:15}}>Memuat ruang kerja BPBD…</p></div>;
- return <AppContext.Provider value={{store,user,role,path,query,navigate,signIn,mutate,dirty,setDirty,filters:filters.current}}><a className="skip-link" href="#main-content">Lewati ke konten utama</a><Toaster richColors theme="light" position="bottom-right"/>{publicRoute||!user?<Auth key={path} mode={publicRoute?path.slice(1):'masuk'}/>:<SidebarProvider style={{'--sidebar-width':'240px'} as React.CSSProperties}><AppSidebar/><div className="shell-main"><Header/>{storageWarning&&<div role="alert" className="notice danger" style={{margin:15}}>{storageWarning}</div>}<main id="main-content" className="content" tabIndex={-1}>{canVisit(store,role,path,user.id)?<RoutePage key={`${user.id}:${role}:${path}`}/>:<SystemPage code="403"/>}<footer className="footer"><span>© 2026 BPBD Kota Semarang · Prototipe UI/UX</span><span>Data demo · Waktu Indonesia Barat (WIB)</span></footer></main></div></SidebarProvider>}<AlertDialog open={!!pending} onOpenChange={open=>!open&&setPending(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Perubahan belum disimpan</AlertDialogTitle><AlertDialogDescription>Isian Anda akan hilang jika meninggalkan halaman. Tetap di halaman untuk meninjau dan menyimpan form.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Tetap di Halaman</AlertDialogCancel><AlertDialogAction onClick={()=>{const go=pending;setDirty(false);setPending(null);go?.();}}>Tinggalkan</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></AppContext.Provider>;
+ return <AppContext.Provider value={{store,user,role,path,query,navigate,signIn,register,mutate,dirty,setDirty,filters:filters.current}}><a className="skip-link" href="#main-content">Lewati ke konten utama</a><Toaster richColors theme="light" position="bottom-right"/>{storageWarning&&<div role="alert" className="notice danger" style={{margin:15}}>{storageWarning}</div>}{publicRoute||!user?<Auth key={path} mode={publicRoute?path.slice(1):'masuk'}/>:<SidebarProvider style={{'--sidebar-width':'240px'} as React.CSSProperties}><AppSidebar/><div className="shell-main"><Header/><main id="main-content" className="content" tabIndex={-1}>{canVisit(store,role,path,user.id)?<RoutePage key={`${user.id}:${role}:${path}`}/>:<SystemPage code="403"/>}<footer className="footer"><span>© 2026 BPBD Kota Semarang · Prototipe UI/UX</span><span>Data demo · Waktu Indonesia Barat (WIB)</span></footer></main></div></SidebarProvider>}<AlertDialog open={!!pending} onOpenChange={open=>!open&&setPending(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Perubahan belum disimpan</AlertDialogTitle><AlertDialogDescription>Isian Anda akan hilang jika meninggalkan halaman. Tetap di halaman untuk meninjau dan menyimpan form.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Tetap di Halaman</AlertDialogCancel><AlertDialogAction onClick={()=>{const go=pending;setDirty(false);setPending(null);go?.();}}>Tinggalkan</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></AppContext.Provider>;
 }
 function AppSidebar(){const {role,store,user,path,navigate}=useApp();const {setOpenMobile,isMobile}=useSidebar();const active=user?.status==='Aktif';const pending=store.entries.filter(e=>!e.archived&&canReviewOperational(role)&&e.status==='Menunggu Persetujuan').length;type Item={label:string;path:string;icon:React.ElementType;count?:number};const menus:Item[]=role==='PEN'?(active?[{label:'Beranda Peneliti',path:'/peneliti',icon:LayoutDashboard},{label:'Permohonan Saya',path:'/peneliti/permohonan',icon:ClipboardCheck},{label:'Data yang Disetujui',path:'/peneliti/data',icon:ShieldCheck},{label:'Hasil Penelitian',path:'/peneliti/hasil',icon:FileText}]:[{label:'Status Akun',path:'/status-akun',icon:Shield}]):[{label:role==='ADM'?'Dashboard Utama':'Dashboard Bidang',path:home(role),icon:LayoutDashboard},{label:'Data Bidang',path:'/data',icon:Database},...(role!=='ADM'||store.adminOperational?[{label:'Impor Data',path:'/impor',icon:Upload}]:[]),...(canReviewOperational(role)?[{label:'Persetujuan Data',path:'/persetujuan',icon:ClipboardCheck,count:pending}]:[]),{label:'Laporan',path:'/laporan',icon:FileText}];const research:Item[]=role==='SEK'||isReviewer(store,role)?[{label:'Permohonan Data',path:'/riset/permohonan',icon:FlaskConical},{label:'Hasil Penelitian',path:'/riset/hasil',icon:GraduationCap}]:[];const admin:Item[]=role==='ADM'?[{label:'Pengguna',path:'/admin/pengguna',icon:Users},{label:'Persetujuan Akun',path:'/admin/pendaftaran',icon:ClipboardCheck,count:store.users.filter(u=>u.role==='PEN'&&u.status==='Menunggu Persetujuan').length},{label:'Hak Akses',path:'/admin/hak-akses',icon:LockKeyhole},{label:'Izin Data Peneliti',path:'/admin/akses-riset',icon:ShieldCheck},{label:'Master Data',path:'/admin/master',icon:FolderOpen},{label:'Audit Trail',path:'/audit',icon:FileClock},{label:'Pengaturan',path:'/admin/pengaturan',icon:Settings}]:[];function link(item:Item){const selected=item.path==='/peneliti'?path==='/peneliti':item.path.startsWith('/dashboard')?path.startsWith('/dashboard'):path===item.path||path.startsWith(item.path+'/');return <a className={`nav-link ${selected?'active':''}`} href={item.path} key={item.path} aria-current={selected?'page':undefined} onClick={e=>{if(e.ctrlKey||e.metaKey)return;e.preventDefault();navigate(item.path==='/admin/master'?'/admin/master/wilayah':item.path);if(isMobile)setOpenMobile(false);}}><item.icon/><span>{item.label}</span>{!!item.count&&<span className="nav-count">{item.count}</span>}</a>;}
 return <Sidebar><div className="brand"><img src="/logo-bpbd.png" alt="Logo BPBD" width="44" height="44"/><div><strong>BPBD SEMARANG</strong><small>SIAGA · DATA CENTER</small></div>{isMobile&&<button aria-label="Tutup navigasi" className="icon-button" onClick={()=>setOpenMobile(false)}><X size={18}/></button>}</div><SidebarContent className="gap-0"><div className="nav-caption" style={{marginTop:9}}>MENU UTAMA</div><nav aria-label="Menu utama" style={{padding:'0 12px'}}>{menus.map(link)}</nav>{research.length>0&&<><div className="nav-caption">LAYANAN PENELITIAN</div><nav aria-label="Layanan penelitian" style={{padding:'0 12px'}}>{research.map(link)}</nav></>}{admin.length>0&&<><div className="nav-caption">ADMINISTRASI</div><nav aria-label="Administrasi" style={{padding:'0 12px'}}>{admin.map(link)}</nav></>}</SidebarContent><SidebarFooter className="p-0 gap-0"><div className="sidebar-help"><HelpCircle size={19} style={{color:'#647b9f'}}/><strong style={{display:'block',marginTop:8}}>Butuh panduan?</strong><p>Pelajari alur pengelolaan data dan layanan penelitian.</p><button className="text-button" onClick={()=>{navigate('/bantuan');setOpenMobile(false);}}>Buka Pusat Bantuan</button></div><div className="sidebar-bottom"><ShieldCheck size={16}/>Ruang kerja BPBD Kota Semarang</div></SidebarFooter></Sidebar>;
