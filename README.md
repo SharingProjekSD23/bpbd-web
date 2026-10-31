@@ -39,7 +39,7 @@ Ketiga kelompok bekerja pada modul dalam satu website. Pembagian ini merupakan p
 
 **Pencatatan dan kegiatan bidang:** petugas login, memilih kelompok data, mengisi form, lalu menyimpan draf atau mengajukan data. Admin inti memeriksa pengajuan dan memberikan keputusan. Petugas dapat memperbaiki data yang dikembalikan. Dashboard menghitung data berstatus **Disetujui** sesuai bidang dan filter yang dipilih.
 
-**Layanan penelitian:** peneliti mendaftar dan menunggu persetujuan akun, lalu mengajukan permohonan akses data. Sekretariat dan peninjau bidang memproses permohonan sesuai kewenangan; Admin menerapkan izin yang disetujui. Peneliti mengakses data sesuai izin dan menyerahkan hasil penelitian untuk diperiksa atau direvisi.
+**Layanan penelitian:** peneliti mendaftar dan menunggu persetujuan akun, lalu mengajukan permohonan akses data. Sekretariat mengoordinasikan administrasi dan tenggat; Admin memutuskan cakupan permohonan dan mengaktifkan izin. Peninjau bidang memeriksa substansi hasil penelitian. Peneliti mengakses data sesuai izin dan menyerahkan hasil penelitian untuk diperiksa atau direvisi.
 
 **Pelaporan:** pengguna memilih data dan filter, membuat pratinjau laporan, lalu mengunduh Word atau PDF. Arsip laporan menyimpan salinan data, filter, dan versi template pada saat laporan dibuat.
 
@@ -79,7 +79,7 @@ Sandi awal semua akun dummy: **`BPBDdemo2026!`**.
 
 Satu orang memakai satu akun, dengan tepat satu role. Admin dapat membuat akun internal beserta sandi demo. Peneliti yang mendaftar memakai email dan sandi yang diisikan sendiri; akun menunggu persetujuan hanya bisa membuka status, profil, dan bantuan. Akun nonaktif tidak dapat login.
 
-Validasi data operasional sementara dilakukan **Admin inti**. Petugas mengajukan data bidangnya, Admin menyetujui/meminta perbaikan/menolak, lalu petugas memperbaiki dan mengajukan ulang bila diperlukan. Sekretariat membaca data operasional bidangnya sendiri; koordinasi administrasi penelitian tetap tersedia. Izin peninjau bidang berlaku untuk layanan penelitian.
+Validasi data operasional sementara dilakukan **Admin inti**. Petugas mengajukan data bidangnya, Admin menyetujui/meminta perbaikan/menolak, lalu petugas memperbaiki dan mengajukan ulang bila diperlukan. Sekretariat membaca data operasional bidangnya sendiri; koordinasi administrasi penelitian tetap tersedia. Izin peninjau bidang berlaku untuk review hasil penelitian.
 
 Keputusan SSO atau kredensial aplikasi masih menunggu pembahasan kantor. Rincian kesepakatan ada di [catatan diskusi](docs/CATATAN-DISKUSI-LOGIN-DAN-VALIDASI.md).
 
@@ -123,11 +123,13 @@ npm.cmd run test:postgres
 - Login akun individual untuk enam role, permission peninjau penelitian, pembatasan route, form, validasi, draf, approval, riwayat, arsip, serta penolakan konflik revisi antarpengguna.
 - Impor `.xlsx` dan CSV: template, validasi, nomor baris kesalahan, pratinjau, batch atomik di PostgreSQL, pencegahan duplikasi, dan riwayat.
 - Pembuatan laporan: salinan data/filter/template yang tetap, unduhan Word `.docx` dan PDF asli, arsip, editor susunan template Sekretariat.
-- Pendaftaran akun peneliti baru, keputusan Admin, permohonan, keputusan per bidang, persetujuan sebagian, penerapan izin, batas unduh, masa berlaku dan perpanjangan tenggat.
+- Pendaftaran akun peneliti baru, keputusan Admin, permohonan, keputusan terpusat Admin, persetujuan sebagian, penerapan izin, batas unduh, masa berlaku dan perpanjangan tenggat.
 - Pengiriman hasil Word/PDF ke penyimpanan PostgreSQL, penerimaan, pemeriksaan kelengkapan, review, revisi sebagai versi baru, dan akses dokumen.
 - Pengguna, permission, master referensi, pengaturan, audit, profil, bantuan, notifikasi, dan halaman sistem.
 
 Pemetaan 44 tipe halaman ada di [docs/PEMETAAN-HALAMAN.md](docs/PEMETAAN-HALAMAN.md).
+
+Dokumentasi fungsional khusus modul penelitian, termasuk alur pengguna, persetujuan, validasi otomatis, akses data, ekspor CSV, hasil penelitian, dan batasan implementasi, tersedia di [Reverse PRD Penelitian](docs/REVERSE-PRD-PENELITIAN.md).
 
 ## Penyimpanan dan batas tahap lokal
 

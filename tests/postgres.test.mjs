@@ -98,10 +98,12 @@ test('Uploaded documents persist in PostgreSQL and downloads enforce field acces
 });
 test('Registration uses server identity and pending accounts cannot create operational data', async () => {
   const ctx=await context();
-  const registration=await ctx.post('/api/bpbd/register',{data:{phone:'081234567890',name:'Peneliti Integrasi',email:'integration@contoh.test',institution:'Kampus Uji',purpose:'Pengujian alur penelitian',password:'PenelitiUji123!',consent:true}});
+  const registration=await ctx.post('/api/bpbd/register',{data:{phone:'081234567890',name:'Peneliti Integrasi',email:'integration@contoh.test',institution:'Kampus Uji',password:'PenelitiUji123!',consent:true}});
   assert.equal(registration.status(),201,await registration.text());
   const snapshot=await state(ctx);assert.equal(snapshot.store.users[0].status,'Menunggu Persetujuan');assert.equal(snapshot.store.entries.length,0);
   await save(ctx,snapshot,s=>{s.users[0].status='Aktif';},403);
+  assert.equal(snapshot.store.users[0].note,'');
+  assert.equal(snapshot.store.users[0].phone,'6281234567890');
   const registeredId=snapshot.userId;
   const beforeHash=(await testPool.query('SELECT password_hash FROM bpbd_users WHERE id=$1',[registeredId])).rows[0].password_hash;
   const admin=await login('adm@bpbd.example');
@@ -119,7 +121,7 @@ test('Research CSV export checks owner, download permission and latest row valid
   assert.equal((await researcher.get('/api/bpbd/research/RSET-003/csv')).status(),403);
   assert.equal((await admin.get('/api/bpbd/research/RSET-001/csv')).status(),403);
   const original=(await testPool.query('SELECT data FROM bpbd_research WHERE id=$1',['RSET-001'])).rows[0].data;
-  const rowId=original.decisions.KL.validatedRows[0].id;
+  const rowId=original.decisions.ADM.validatedRows[0].id;
   const row=(await testPool.query('SELECT data FROM bpbd_entries WHERE id=$1',[rowId])).rows[0].data;
   try {
     await testPool.query('UPDATE bpbd_research SET data=$2 WHERE id=$1',['RSET-001',JSON.stringify({...original,download:false})]);

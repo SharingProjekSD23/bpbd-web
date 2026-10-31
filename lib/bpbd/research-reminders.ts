@@ -21,7 +21,7 @@ export function dueResearchReminders(store: Pick<Store,'research'|'users'>, toda
     const owner = store.users.find(u => u.id === research.owner && u.role === 'PEN' && u.status === 'Aktif');
     const schedule = researchReminderSlot(research.deadline, today);
     const phone = normalizePhone(owner?.phone || '');
-    if (!owner || owner.whatsappConsent !== true || !phone || !schedule || research.versions.length || !['Diajukan','Dalam Peninjauan','Perlu Perbaikan','Disetujui','Disetujui Sebagian'].includes(research.status)) return [];
+    if (!owner || owner.whatsappConsent !== true || !phone || !schedule || research.versions.length || !['Diajukan','Disetujui'].includes(research.status)) return [];
     return [{ research, owner, phone, ...schedule, key: `${research.id}:${research.deadline}:${schedule.slot}` }];
   });
 }

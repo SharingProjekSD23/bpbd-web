@@ -95,9 +95,9 @@ export async function handleApi(request: Request) {
       const token = await newSession(client, user);
       result = response({ store: scopeStore(store, user), revision: snapshot.revision, userId: user.id }, 200, { 'Set-Cookie': cookie(request, token) });
     } else if (path === 'register' && request.method === 'POST') {
-      const input = z.object({ phone: z.string().max(40).refine(v => !!normalizePhone(v), 'Nomor telepon tidak valid.'), name: z.string().trim().min(1).max(200), email: z.string().email().max(254), institution: z.string().trim().min(1).max(300), purpose: z.string().trim().min(1).max(5000), password: z.string().min(8).max(256), consent: z.literal(true) }).strict().parse(await json(request));
+      const input = z.object({ phone: z.string().max(40).refine(v => !!normalizePhone(v), 'Nomor WhatsApp tidak valid.'), name: z.string().trim().min(1).max(200), email: z.string().email().max(254), institution: z.string().trim().min(1).max(300), password: z.string().min(8).max(256), consent: z.literal(true) }).strict().parse(await json(request));
       requireThat(!store.users.some(u => u.email.toLowerCase() === input.email.toLowerCase()), 'Email sudah digunakan.', 409);
-      const user: User = { whatsappConsent: true, phone: normalizePhone(input.phone), id: uid('PEN'), name: input.name, email: input.email.trim().toLowerCase(), institution: input.institution, note: input.purpose, role: 'PEN', status: 'Menunggu Persetujuan', demoPassword: input.password };
+      const user: User = { whatsappConsent: true, phone: normalizePhone(input.phone), id: uid('PEN'), name: input.name, email: input.email.trim().toLowerCase(), institution: input.institution, note: '', role: 'PEN', status: 'Menunggu Persetujuan', demoPassword: input.password };
       const next = structuredClone(store); next.users.push(user);
       next.audit.unshift({ id: uid('AUD'), at: timestamp(), actor: user.name, role: 'PEN', action: 'Pendaftaran peneliti diajukan', object: user.id });
       await writeStore(client, store, next);

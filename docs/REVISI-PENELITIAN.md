@@ -28,3 +28,13 @@ Jadwal setiap tujuh hari mulai H-30 adalah **H-30, H-23, H-16, H-9, H-2** berdas
 Riwayat disimpan di `bpbd_research_reminders` dengan kunci unik permohonan+tenggat+minggu. Dua worker tidak dapat mengirim bersamaan. `accepted` berarti diterima API penyedia, bukan bukti diterima penerima; webhook konfirmasi pengantaran belum disediakan. Penolakan HTTP dapat dicoba kembali setelah satu jam. Status `sending` yang tersisa atau `uncertain` tidak dicoba ulang otomatis karena pesan mungkin sudah diterima API. Pengelola harus memeriksa riwayat penyedia sebelum mengubah status menjadi `failed` untuk mengizinkan percobaan ulang.
 
 Untuk menonaktifkan tugas Windows: `Disable-ScheduledTask -TaskName BPBD-Pengingat-Penelitian`.
+
+## Revisi kedua — notulensi perubahan 2
+
+- Panel **Tindak lanjut** dipindahkan dari Beranda Peneliti ke halaman **Hasil Penelitian**.
+- **Admin Sistem** memberi keputusan permohonan untuk seluruh dataset, termasuk lintas bidang. Menu Permohonan Data tersedia bagi Admin dan Sekretariat; Sekretariat tetap mengoordinasikan tenggat. Bidang hanya mereview hasil penelitian dan tidak dapat mengubah keputusan permohonan melalui API.
+- Keputusan baru disimpan sebagai keputusan ADM. Keputusan lama per bidang tetap dibaca untuk kompatibilitas; ketika Admin memutuskan ulang, keputusan ADM menggantikannya. Aktivasi izin tetap tindakan terpisah. Perubahan keputusan mengembalikan izin ke Belum Aktif.
+- Halaman **Data yang Disetujui** hanya menampilkan tabel daftar dan tombol **Buka rincian**. Kartu tambahan, pratinjau dataset, dan ekspor langsung pada halaman daftar dihapus.
+- Pratinjau maksimal lima baris per dataset dan **Ekspor CSV** seluruh baris berizin tetap tersedia pada **Rincian Akses Data**.
+
+Bagian revisi kedua ini menggantikan uraian keputusan per bidang dan ekspor langsung pada daftar dalam catatan revisi sebelumnya.

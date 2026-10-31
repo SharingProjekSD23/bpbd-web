@@ -55,7 +55,7 @@ test('Admin can approve a pending entry without gaining content editing rights',
 });
 test('Researchers cannot change grants and reviewers cannot decide another field', () => {
   const store=seedStore(), researcher=store.users.find(u=>u.id==='PEN-001');
-  const next=scopeStore(store,researcher);next.research[0].decisions.KL.groups.push('logistik');
+  const next=scopeStore(store,researcher);next.research[0].decisions.ADM.groups.push('logistik');
   assert.throws(()=>mergeStore(store,next,researcher,'',''));
   const actor=store.users.find(u=>u.role==='KL'),field=scopeStore(store,actor);
   field.research[0].decisions.PK={status:'Disetujui',groups:['mitigasi'],note:'forged'};

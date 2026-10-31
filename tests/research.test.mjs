@@ -20,17 +20,17 @@ test('Research access blocks unvalidated legacy grants and any changed or newly 
   s.entries.push({...row,id:'NEW-ROW'});
   assert.equal(authorizedResearchEntries(s,r,r.owner).length,0);
   s.entries.pop();
-  delete r.decisions.KL.validatedRows;
+  delete r.decisions.ADM.validatedRows;
   assert.equal(researchDataValidated(s,r),false);
   assert.equal(scopeStore(s,s.users.find(u=>u.id===r.owner)).entries.length,0);
 });
-test('Every requested field must decide before data can be accessed', () => {
+test('Approval must cover every requested dataset before data can be accessed', () => {
   const s=seedStore(),r=s.research[0];
-  delete r.decisions.PK;
+  r.decisions.ADM.groups.pop();
   assert.equal(researchDataValidated(s,r),false);
   assert.equal(authorizedResearchEntries(s,r,r.owner).length,0);
 });
-test('Submission automatically validates every eligible row on the server; drafts do not',()=>{
+test('Submission automatically validates all rows and rejects the removed request statuses',()=>{
   const store=seedStore(),actor=store.users.find(u=>u.id==='PEN-001');
   const request={...structuredClone(store.research[0]),id:'RSET-AUTO',area:'all',requestedGroups:['kejadian','mitigasi'],status:'Diajukan',access:'Belum Aktif',download:false,decisions:{},history:[],versions:[]};
   const submitted=scopeStore(store,actor);submitted.research.push(request);
@@ -38,28 +38,60 @@ test('Submission automatically validates every eligible row on the server; draft
   const expected=requestedResearchEntries(store,request).map(e=>({id:e.id,version:e.version}));
   assert.ok(expected.length>5);assert.deepEqual(saved.validation.rows,expected);
   assert.equal(saved.history.at(-1).actor,'Sistem');assert.equal(saved.status,'Diajukan');assert.equal(saved.access,'Belum Aktif');
-  const draft=structuredClone(submitted);draft.research.at(-1).status='Draf';
-  assert.equal(mergeStore(store,draft,actor,'Draf',request.id).research.find(r=>r.id===request.id).validation,undefined);
+  for(const status of ['Draf','Dalam Peninjauan','Perlu Perbaikan','Disetujui Sebagian']) {
+    const invalid=structuredClone(submitted);invalid.research.at(-1).status=status;
+    assert.throws(()=>mergeStore(store,invalid,actor,'Status lama',request.id));
+  }
   submitted.research.at(-1).validation={at:'fake',rows:[]};
   assert.throws(()=>mergeStore(store,submitted,actor,'Palsu',request.id),/dibuat otomatis/);
 });
-test('Reviewer approvals automatically use all current rows regardless of client validation references', () => {
-  const s=seedStore(),actor=s.users.find(u=>u.role==='KL');
-  const valid=requestedResearchEntries(s,s.research[0],['kejadian']).map(e=>({id:e.id,version:e.version}));
-  for(const rows of [undefined,[],valid.map(v=>({...v,version:v.version+1})),[...valid,...valid],[{id:'UNRELATED',version:1}]]) {
+test('Only Admin decides all requested datasets, with canonical row validation and a separate activation', () => {
+  const s=seedStore(),actor=s.users.find(u=>u.role==='ADM');
+  for(const refs of [undefined,[],[{id:'UNRELATED',version:999}]]){
     const submitted=scopeStore(s,actor),r=submitted.research.find(r=>r.id==='RSET-001');
-    if(rows===undefined)delete r.decisions.KL.validatedRows;else r.decisions.KL.validatedRows=rows;
-    r.decisions.KL.note='Persetujuan cakupan otomatis';
-    const saved=mergeStore(s,submitted,actor,'Setujui','RSET-001').research[0];
-    assert.deepEqual(saved.decisions.KL.validatedRows,valid);
+    r.decisions={ADM:{status:'Disetujui',note:'Persetujuan Admin lintas bidang',groups:[...r.requestedGroups],accessEnd:'2026-12-31',download:true,validatedRows:refs}};
+    const saved=mergeStore(s,submitted,actor,'Keputusan Admin',r.id).research.find(x=>x.id===r.id);
+    assert.equal(saved.status,'Disetujui');assert.equal(saved.access,'Belum Aktif');
+    assert.deepEqual(saved.decisions.ADM.validatedRows,requestedResearchEntries(s,r).map(e=>({id:e.id,version:e.version})));
     assert.ok(researchDataValidated(s,saved));
   }
+  for(const field of ['PK','KL','RR']){
+    const reviewer=s.users.find(u=>u.role===field),copy=scopeStore(s,reviewer),r=copy.research.find(r=>r.requestedGroups.some(g=>({kejadian:'KL',mitigasi:'PK',edukasi:'PK',pemulihan:'RR',progres:'RR'})[g]===field));
+    if(!r)continue;
+    r.decisions[field]={status:'Disetujui',note:'Tentatif',groups:r.requestedGroups.filter(g=>g===(field==='KL'?'kejadian':field==='PK'?'mitigasi':'pemulihan')),accessEnd:'2026-12-31'};
+    assert.throws(()=>mergeStore(s,copy,reviewer,'Keputusan bidang',r.id),/Admin Sistem/);
+  }
+});
+test('Admin approves the whole request or rejects it and revokes previous access',()=>{
+ const s=seedStore(),actor=s.users.find(u=>u.role==='ADM');
+ for(const status of ['Disetujui','Ditolak']){
+  const copy=scopeStore(s,actor),r=copy.research[0];
+  r.decisions={ADM:{status,note:'Keputusan baru Admin',groups:status==='Disetujui'?[...r.requestedGroups]:[],accessEnd:'2026-12-31',download:true}};
+  const saved=mergeStore(s,copy,actor,'Keputusan',r.id).research[0];
+  assert.equal(saved.status,status);assert.equal(saved.access,'Belum Aktif');
+  assert.equal(saved.download,status==='Disetujui');
+ }
+ for(const [status,selected] of [['Disetujui',['kejadian']],['Perlu Perbaikan',[]],['Disetujui',['logistik']]]){
+  const copy=scopeStore(s,actor),r=copy.research[0];
+  r.decisions={ADM:{status,note:'Tidak valid',groups:selected,accessEnd:'2026-12-31'}};
+  assert.throws(()=>mergeStore(s,copy,actor,'Keputusan',r.id));
+ }
+});
+test('Secretariat coordinates deadlines while the request stays submitted',()=>{
+ const s=seedStore(),actor=s.users.find(u=>u.role==='SEK'),copy=scopeStore(s,actor);
+ const r=copy.research.find(r=>r.status==='Diajukan');
+ r.deadline='2026-12-30';
+ assert.equal(mergeStore(s,copy,actor,'Koordinasi',r.id).research.find(x=>x.id===r.id).status,'Diajukan');
+ for(const status of ['Dalam Peninjauan','Disetujui','Ditolak']){
+  r.status=status;
+  assert.throws(()=>mergeStore(s,copy,actor,'Status tidak sah',r.id));
+ }
 });
 test('Administrator cannot activate access without complete current row validation', () => {
   const s=seedStore(),actor=s.users.find(u=>u.role==='ADM');
-  s.research[0].access='Belum Aktif';delete s.research[0].decisions.KL.validatedRows;
+  s.research[0].access='Belum Aktif';delete s.research[0].decisions.ADM.validatedRows;
   const submitted=scopeStore(s,actor);submitted.research.find(r=>r.id==='RSET-001').access='Aktif';
-  assert.throws(()=>mergeStore(s,submitted,actor,'Aktivasi','RSET-001'),/Setiap baris/);
+  assert.throws(()=>mergeStore(s,submitted,actor,'Aktivasi','RSET-001'),/Validasi baris/);
 });
 test('Researcher can save their phone and reminder consent but cannot forge row approvals', () => {
   const s=seedStore();s.users.forEach(u=>u.demoPassword='');
@@ -67,7 +99,7 @@ test('Researcher can save their phone and reminder consent but cannot forge row 
   Object.assign(submitted.users[0],{phone:'0812-3456-7890',whatsappConsent:true});
   const saved=mergeStore(s,submitted,actor,'Profil',actor.id);
   assert.equal(saved.users.find(u=>u.id===actor.id).phone,'6281234567890');
-  submitted.research[0].decisions.KL.validatedRows=[];
+  submitted.research[0].decisions.ADM.validatedRows=[];
   assert.throws(()=>mergeStore(s,submitted,actor,'Validasi palsu','RSET-001'));
 });
 test('Weekly schedule starts H-30, uses WIB, and excludes overdue and invalid dates', () => {

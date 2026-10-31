@@ -1,6 +1,6 @@
 import { isDeepStrictEqual as equal } from 'node:util';
 import { z } from 'zod';
-import { approvedGroups, authorizedResearchEntries, requestedResearchEntries, researchDataValidated, normalizePhone, canEdit, canRead, filterEntries, groups, isReviewer, operationalStatuses, referenceDate, timestamp, uid, validateEntry, type Entry, type Research, type Store, type User } from '../bpbd/model.ts';
+import { approvedGroups, authorizedResearchEntries, requestedResearchEntries, researchDataValidated, normalizePhone, canEdit, canRead, filterEntries, groups, isReviewer, operationalStatuses, researchStatuses, referenceDate, timestamp, uid, validateEntry, type Entry, type Research, type Store, type User } from '../bpbd/model.ts';
 
 export class ApiError extends Error {
   status: number;
@@ -16,8 +16,8 @@ const role = z.enum(['ADM', 'PK', 'KL', 'RR', 'SEK', 'PEN']);
 const userSchema = z.object({ whatsappConsent: z.boolean().optional(), phone: z.string().max(40).refine(v => !v || !!normalizePhone(v), 'Nomor telepon tidak valid.').optional(), id, name: str.min(1), email: z.string().email().max(254), role, institution: str, status: z.enum(['Aktif', 'Nonaktif', 'Menunggu Persetujuan', 'Perlu Perbaikan', 'Ditolak']), note: str, demoPassword: z.string().max(256) }).strict();
 const entrySchema = z.object({ id, group: str, title: str.min(1), area: str, hazard: str, date: str, status: z.enum(operationalStatuses as [string, ...string[]]), handling: z.enum(['Dalam penanganan', 'Selesai']), amount: z.number().finite(), unit: str, description: str, version: z.number().int().positive(), history: z.array(event), archived: z.boolean().optional(), linkedId: id.optional(), fileId: id.optional(), fileName: str.optional() }).strict();
 const resultSchema = z.object({ id, at: str, filename: str, fileId: id, summary: str, feedback: str, review: str, note: str }).strict();
-const decisionSchema = z.object({ status: z.enum(['Disetujui', 'Ditolak', 'Perlu Perbaikan']), note: str, groups: z.array(str), download: z.boolean().optional(), accessEnd: str.optional(), validatedRows: z.array(z.object({ id, version: z.number().int().positive() }).strict()).optional() }).strict();
-const researchSchema = z.object({ validation: z.object({ at: str, rows: z.array(z.object({ id, version: z.number().int().positive() }).strict()) }).strict().optional(), id, owner: id, title: str.min(1), institution: str, purpose: str, requestedGroups: z.array(str).min(1), area: str, start: str, end: str, deadline: str, status: str, access: str, accessEnd: str, download: z.boolean(), decisions: z.record(decisionSchema), history: z.array(event), versions: z.array(resultSchema), extension: z.object({ date: str, reason: str }).strict().optional(), supportingId: id.optional(), supportingName: str.optional(), complete: z.boolean().optional() }).strict();
+const decisionSchema = z.object({ status: z.enum(['Disetujui', 'Ditolak']), note: str, groups: z.array(str), download: z.boolean().optional(), accessEnd: str.optional(), validatedRows: z.array(z.object({ id, version: z.number().int().positive() }).strict()).optional() }).strict();
+const researchSchema = z.object({ validation: z.object({ at: str, rows: z.array(z.object({ id, version: z.number().int().positive() }).strict()) }).strict().optional(), id, owner: id, title: str.min(1), institution: str, purpose: str, requestedGroups: z.array(str).min(1), area: str, start: str, end: str, deadline: str, status: z.enum(researchStatuses), access: str, accessEnd: str, download: z.boolean(), decisions: z.record(decisionSchema), history: z.array(event), versions: z.array(resultSchema), extension: z.object({ date: str, reason: str }).strict().optional(), supportingId: id.optional(), supportingName: str.optional(), complete: z.boolean().optional() }).strict();
 
 export function scopeStore(store: Store, actor: User): Store {
   const scoped = structuredClone(store);
@@ -51,18 +51,16 @@ function history(before: Entry['history'], after: Entry['history'], actor: User)
 function validateResearch(store: Store, actor: User, old: Research | undefined, next: Research) {
   researchSchema.parse(next);
   let automaticValidation = false;
-  requireThat(next.requestedGroups.every(g => !!groups[g]), 'Kelompok data tidak valid.', 400);
+  requireThat(new Set(next.requestedGroups).size === next.requestedGroups.length && next.requestedGroups.every(g => !!groups[g] && groups[g].role !== 'SEK'), 'Kelompok data tidak valid.', 400);
   requireThat(next.start <= next.end && next.title.trim() && next.purpose.trim(), 'Isi permohonan tidak valid.', 400);
   if (actor.role === 'PEN') {
     requireThat(actor.status === 'Aktif' && next.owner === actor.id && (!old || old.owner === actor.id));
-    if (!old || ['Draf', 'Perlu Perbaikan'].includes(old.status)) {
-      requireThat(['Draf', 'Diajukan'].includes(next.status) && next.access === 'Belum Aktif' && !next.download && !Object.keys(next.decisions).length);
-      requireThat(equal(next.versions, old?.versions || []) && equal(next.complete, old?.complete) && equal(next.extension, old?.extension));
-      requireThat(next.validation === undefined || equal(next.validation, old?.validation), 'Catatan validasi dibuat otomatis oleh server.');
-      if (next.status === 'Diajukan') {
-        next.validation = { at: timestamp(), rows: requestedResearchEntries(store, next).map(e => ({ id: e.id, version: e.version })) };
-        automaticValidation = true;
-      } else delete next.validation;
+    if (!old) {
+      requireThat(next.status === 'Diajukan' && next.access === 'Belum Aktif' && !next.download && !Object.keys(next.decisions).length);
+      requireThat(equal(next.versions, []) && next.complete === undefined && next.extension === undefined);
+      requireThat(next.validation === undefined, 'Catatan validasi dibuat otomatis oleh server.');
+      next.validation = { at: timestamp(), rows: requestedResearchEntries(store, next).map(e => ({ id: e.id, version: e.version })) };
+      automaticValidation = true;
     } else if (!equal(old.versions, next.versions)) {
       fields(old, next, ['versions', 'complete', 'history']);
       requireThat(approvedGroups(old).length > 0 && next.complete === false && next.versions.length === old.versions.length + 1 && equal(next.versions.slice(0, -1), old.versions));
@@ -77,18 +75,34 @@ function validateResearch(store: Store, actor: User, old: Research | undefined, 
     requireThat(old, 'Permohonan tidak ditemukan.', 404);
     requireThat(old.owner === next.owner);
     if (actor.role === 'ADM') {
-      fields(old, next, ['access', 'accessEnd', 'download', 'history']);
-      requireThat(['Aktif', 'Dicabut', 'Berakhir', 'Belum Aktif'].includes(next.access));
-      if (next.access === 'Aktif') {
-        const grants = Object.values(old.decisions).filter(d => d.status === 'Disetujui');
-        requireThat(['Disetujui', 'Disetujui Sebagian'].includes(old.status) && grants.length > 0);
-        requireThat(researchDataValidated(store, old), 'Setiap baris data harus divalidasi bidang pemilik sebelum izin diaktifkan.');
-        requireThat(next.accessEnd >= referenceDate && grants.every(d => next.accessEnd <= (d.accessEnd || old.accessEnd)), 'Masa izin melampaui keputusan bidang.');
-        requireThat(!next.download || grants.every(d => d.download === true), 'Hak unduh belum disetujui semua bidang.');
+      if (!equal(old.decisions, next.decisions)) {
+        fields(old, next, ['decisions', 'status', 'download', 'accessEnd', 'history']);
+        const decision = next.decisions.ADM;
+        requireThat(Object.keys(next.decisions).length === 1 && decision && decision.note.trim(), 'Keputusan harus ditetapkan Admin Sistem.');
+        requireThat(decision.groups.every(g => old.requestedGroups.includes(g)) && new Set(decision.groups).size === decision.groups.length, 'Dataset berada di luar permohonan.');
+        requireThat(decision.status !== 'Disetujui' || decision.groups.length === old.requestedGroups.length, 'Persetujuan harus mencakup seluruh dataset yang diminta.');
+        requireThat(decision.status !== 'Disetujui' || decision.accessEnd && decision.accessEnd >= referenceDate, 'Pilih masa akses yang valid.');
+        requireThat(decision.status === 'Disetujui' || !decision.groups.length);
+        decision.validatedRows = decision.status === 'Disetujui' ? requestedResearchEntries(store, old, decision.groups).map(e => ({ id:e.id, version:e.version })) : [];
+        next.validation = { at:timestamp(), rows:requestedResearchEntries(store, old).map(e => ({ id:e.id, version:e.version })) };
+        next.status = decision.status;
+        next.download = decision.status === 'Disetujui' && decision.download === true;
+        next.accessEnd = decision.accessEnd || old.accessEnd;
+        // A changed decision requires explicit activation of the resulting permission.
+        next.access = 'Belum Aktif';
+      } else {
+        fields(old, next, ['access', 'accessEnd', 'download', 'history']);
+        requireThat(['Aktif', 'Dicabut', 'Berakhir', 'Belum Aktif'].includes(next.access));
+        if (next.access === 'Aktif') {
+          const grants = Object.values(old.decisions).filter(d => d.status === 'Disetujui');
+          requireThat(old.status === 'Disetujui' && grants.length > 0);
+          requireThat(researchDataValidated(store, old), 'Validasi baris data perlu diperbarui sebelum izin diaktifkan.');
+          requireThat(next.accessEnd >= referenceDate && grants.every(d => next.accessEnd <= (d.accessEnd || old.accessEnd)), 'Masa izin melampaui keputusan persetujuan.');
+          requireThat(!next.download || grants.every(d => d.download === true), 'Hak unduh belum disetujui.');
+        }
       }
     } else if (actor.role === 'SEK') {
-      fields(old, next, ['deadline', 'status', 'history', 'extension', 'complete']);
-      requireThat(next.status === old.status || old.status === 'Diajukan' && next.status === 'Dalam Peninjauan');
+      fields(old, next, ['deadline', 'history', 'extension', 'complete']);
     } else {
       requireThat(isReviewer(store, actor.role) && old.requestedGroups.some(g => groups[g]?.role === actor.role));
       if (!equal(old.versions, next.versions)) {
@@ -97,23 +111,7 @@ function validateResearch(store: Store, actor: User, old: Research | undefined, 
         fields(old.versions.at(-1)!, next.versions.at(-1)!, ['review', 'note']);
         requireThat(['Sedang Ditinjau', 'Perlu Perbaikan', 'Selesai Ditinjau'].includes(next.versions.at(-1)!.review) && next.versions.at(-1)!.note.trim());
       } else {
-        fields(old, next, ['decisions', 'status', 'download', 'accessEnd', 'history']);
-        fields(old.decisions, next.decisions, [actor.role]);
-        const decision = next.decisions[actor.role];
-        requireThat(decision && decision.note.trim() && decision.groups.every(g => old.requestedGroups.includes(g) && groups[g]?.role === actor.role));
-        requireThat(decision.status !== 'Disetujui' || decision.groups.length > 0 && decision.accessEnd && decision.accessEnd >= referenceDate);
-        requireThat(decision.status === 'Disetujui' || !decision.groups.length);
-        // Derive every row from trusted server data; clients never need to check rows.
-        decision.validatedRows = decision.status === 'Disetujui'
-          ? requestedResearchEntries(store, old, decision.groups).map(e => ({ id: e.id, version: e.version })) : [];
-        if (decision.status === 'Disetujui') next.validation = { at: timestamp(), rows: requestedResearchEntries(store, old).map(e => ({ id: e.id, version: e.version })) };
-        const allFields = [...new Set(old.requestedGroups.map(g => groups[g].role))];
-        const done = allFields.every(f => ['Disetujui', 'Ditolak'].includes(next.decisions[f]?.status));
-        const approved = approvedGroups(next);
-        next.status = decision.status === 'Perlu Perbaikan' ? 'Perlu Perbaikan' : !done ? 'Dalam Peninjauan' : !approved.length ? 'Ditolak' : approved.length === next.requestedGroups.length ? 'Disetujui' : 'Disetujui Sebagian';
-        const grants = Object.values(next.decisions).filter(d => d.status === 'Disetujui');
-        next.download = !!grants.length && grants.every(d => d.download === true);
-        next.accessEnd = grants.map(d => d.accessEnd).filter(Boolean).sort()[0] || old.accessEnd;
+        requireThat(false, 'Keputusan permohonan hanya dapat ditetapkan Admin Sistem.');
       }
     }
   }
