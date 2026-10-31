@@ -30,9 +30,9 @@ export const groups: Record<string, { name: string; role: Role; unit: string; me
 export type Entry = { id: string; group: string; title: string; area: string; hazard: string; date: string; status: string; handling: string; amount: number; unit: string; description: string; version: number; history: Event[]; archived?: boolean; linkedId?: string; fileId?: string; fileName?: string };
 export type Event = { at: string; actor: string; action: string; note?: string };
 export type Audit = Event & { id: string; object: string; role: Role; before?: string; after?: string };
-export type Research = { id: string; owner: string; title: string; institution: string; purpose: string; requestedGroups: string[]; area: string; start: string; end: string; deadline: string; status: string; access: string; accessEnd: string; download: boolean; decisions: Record<string, { status: string; note: string; groups: string[]; download?: boolean; accessEnd?: string }>; history: Event[]; versions: ResultVersion[]; extension?: { date: string; reason: string }; supportingId?: string; supportingName?: string; complete?: boolean };
+export type Research = { validation?: { at: string; rows: { id: string; version: number }[] }; id: string; owner: string; title: string; institution: string; purpose: string; requestedGroups: string[]; area: string; start: string; end: string; deadline: string; status: string; access: string; accessEnd: string; download: boolean; decisions: Record<string, { status: string; note: string; groups: string[]; download?: boolean; accessEnd?: string; validatedRows?: { id: string; version: number }[] }>; history: Event[]; versions: ResultVersion[]; extension?: { date: string; reason: string }; supportingId?: string; supportingName?: string; complete?: boolean };
 export type ResultVersion = { id: string; at: string; filename: string; fileId: string; summary: string; feedback: string; review: string; note: string };
-export type User = { id: string; name: string; email: string; role: Role; institution: string; status: string; note: string; demoPassword: string };
+export type User = { phone?: string; whatsappConsent?: boolean; id: string; name: string; email: string; role: Role; institution: string; status: string; note: string; demoPassword: string };
 export type Filters = { from: string; to: string; area: string; hazard: string; search: string; status: string };
 export const defaultFilters: Filters = { from: '2026-01-01', to: '2026-10-08', area: 'all', hazard: 'all', search: '', status: 'all' };
 export type Report = { id: string; title: string; group: string; filters: Filters; rows: Entry[]; created: string; actor: string; templateVersion: number; sections: string[]; role: Role };
@@ -93,9 +93,32 @@ export function canVisit(store: Store, role: Role, path: string, accountId?: str
   return true;
 }
 export function filterEntries(entries: Entry[], f: Filters) { return entries.filter(e => !e.archived && (!f.from || e.date >= f.from) && (!f.to || e.date <= f.to) && (f.area === 'all' || e.area === f.area) && (f.hazard === 'all' || e.hazard === f.hazard) && (f.status === 'all' || e.status === f.status) && (!f.search || `${e.title} ${e.id} ${e.area}`.toLocaleLowerCase('id').includes(f.search.toLocaleLowerCase('id')))); }
-export function approvedGroups(r: Research) { return [...new Set(Object.values(r.decisions).filter(d => d.status === 'Disetujui').flatMap(d => d.groups))]; }
+export function normalizePhone(value: string) {
+  let phone = value.trim().replace(/[\s().-]/g, '');
+  if (phone.startsWith('+')) {
+    phone = phone.slice(1);
+    if (phone.startsWith('0')) return '';
+  } else if (phone.startsWith('0')) {
+    if (!/^0[1-9]/.test(phone)) return '';
+    phone = '62' + phone.slice(1);
+  }
+  return /^[1-9]\d{9,14}$/.test(phone) ? phone : '';
+}
+export function approvedGroups(r: Research) { return [...new Set(Object.entries(r.decisions).filter(([,d]) => d.status === 'Disetujui').flatMap(([field,d]) => d.groups.filter(g => r.requestedGroups.includes(g) && groups[g]?.role === field)))]; }
+export function requestedResearchEntries(store: Store, r: Research, selected = r.requestedGroups) {
+  return store.entries.filter(e => !e.archived && e.status === 'Disetujui' && selected.includes(e.group) && r.requestedGroups.includes(e.group) && (r.area === 'all' || r.area === e.area) && e.date >= r.start && e.date <= r.end);
+}
+export function researchDataValidated(store: Store, r: Research) {
+  const fields = [...new Set(r.requestedGroups.map(g => groups[g]?.role))];
+  return approvedGroups(r).length > 0 && fields.every(field => ['Disetujui','Ditolak'].includes(r.decisions[field]?.status)) &&
+    approvedGroups(r).every(g => Array.isArray(r.decisions[groups[g].role]?.validatedRows)) &&
+    requestedResearchEntries(store, r, approvedGroups(r)).every(e => r.decisions[groups[e.group].role]?.validatedRows?.some(v => v.id === e.id && v.version === e.version));
+}
 export function accessActive(r: Research) { return r.access === 'Aktif' && r.accessEnd >= referenceDate; }
-export function authorizedResearchEntries(store: Store, request: Research, owner: string) { if (request.owner !== owner || sessionUser(store, owner)?.status !== 'Aktif' || !accessActive(request)) return []; return store.entries.filter(e => !e.archived && e.status === 'Disetujui' && approvedGroups(request).includes(e.group) && (request.area === 'all' || request.area === e.area) && e.date >= request.start && e.date <= request.end); }
+export function authorizedResearchEntries(store: Store, request: Research, owner: string) {
+  if (request.owner !== owner || sessionUser(store, owner)?.status !== 'Aktif' || !accessActive(request) || !researchDataValidated(store, request)) return [];
+  return requestedResearchEntries(store, request, approvedGroups(request));
+}
 export function validateEntry(e: Partial<Entry>): Record<string, string> { const errors: Record<string, string> = {}; if (!e.title?.trim()) errors.title = 'Nama catatan wajib diisi.'; if (!e.area || !areas.includes(e.area)) errors.area = 'Pilih kecamatan yang tersedia.'; if (!e.hazard || !hazards.includes(e.hazard)) errors.hazard = 'Pilih jenis bencana.'; if (!e.date || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || Number.isNaN(Date.parse(e.date)) || new Date(e.date).toISOString().slice(0, 10) !== e.date) errors.date = 'Masukkan tanggal yang valid.'; if (!Number.isFinite(e.amount) || Number(e.amount) < 0 || (e.unit === '%' && Number(e.amount) > 100)) errors.amount = e.unit === '%' ? 'Progres harus antara 0 dan 100.' : 'Jumlah harus berupa angka nol atau lebih.'; return errors; }
 export function seedStore(): Store {
   const entries: Entry[] = [];
@@ -117,6 +140,8 @@ export function seedStore(): Store {
     { id: 'RSET-002', owner: DEMO_USER, title: 'Evaluasi edukasi kesiapsiagaan masyarakat', institution: 'Universitas Contoh Semarang', purpose: 'Mengevaluasi cakupan kegiatan edukasi kesiapsiagaan.', requestedGroups: ['edukasi'], area: 'all', start: '2026-01-01', end: '2026-10-08', deadline: '2026-12-15', status: 'Dalam Peninjauan', access: 'Belum Aktif', accessEnd: '2026-11-30', download: false, decisions: {}, history: [event], versions: [] },
     { id: 'RSET-003', owner: 'PEN-002', title: 'Analisis pemulihan fasilitas pascabencana', institution: 'Institut Riset Contoh', purpose: 'Analisis proses pemulihan fasilitas umum.', requestedGroups: ['pemulihan', 'progres'], area: 'all', start: '2026-01-01', end: '2026-09-30', deadline: '2026-10-20', status: 'Diajukan', access: 'Belum Aktif', accessEnd: '2026-10-31', download: false, decisions: {}, history: [event], versions: [] },
   ];
+  // Fresh demo data includes the row validations represented by its initial grant.
+  research[0].decisions.KL.validatedRows = requestedResearchEntries({ entries } as Store, research[0], ['kejadian']).map(e => ({ id: e.id, version: e.version }));
   return { schema: 1, researcherId: DEMO_USER, entries, research, reports: [], imports: [], users: [
     ...(['ADM', 'PK', 'KL', 'RR', 'SEK'] as Role[]).map(role => ({ id: `USER-${role}`, name: roles[role].person, email: `${role.toLowerCase()}@bpbd.example`, role, institution: 'BPBD Kota Semarang', status: 'Aktif', note: '', demoPassword: DEMO_PASSWORD })),
     { id: DEMO_USER, name: roles.PEN.person, email: 'nadia@peneliti.example', role: 'PEN', institution: 'Universitas Contoh Semarang', status: 'Aktif', note: '', demoPassword: DEMO_PASSWORD },

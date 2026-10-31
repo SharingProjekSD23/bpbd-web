@@ -98,7 +98,7 @@ test('Uploaded documents persist in PostgreSQL and downloads enforce field acces
 });
 test('Registration uses server identity and pending accounts cannot create operational data', async () => {
   const ctx=await context();
-  const registration=await ctx.post('/api/bpbd/register',{data:{name:'Peneliti Integrasi',email:'integration@contoh.test',institution:'Kampus Uji',purpose:'Pengujian alur penelitian',password:'PenelitiUji123!',consent:true}});
+  const registration=await ctx.post('/api/bpbd/register',{data:{phone:'081234567890',name:'Peneliti Integrasi',email:'integration@contoh.test',institution:'Kampus Uji',purpose:'Pengujian alur penelitian',password:'PenelitiUji123!',consent:true}});
   assert.equal(registration.status(),201,await registration.text());
   const snapshot=await state(ctx);assert.equal(snapshot.store.users[0].status,'Menunggu Persetujuan');assert.equal(snapshot.store.entries.length,0);
   await save(ctx,snapshot,s=>{s.users[0].status='Aktif';},403);
@@ -110,6 +110,46 @@ test('Registration uses server identity and pending accounts cannot create opera
   assert.equal((await testPool.query('SELECT password_hash FROM bpbd_users WHERE id=$1',[registeredId])).rows[0].password_hash,beforeHash);
   await ctx.post('/api/bpbd/logout');assert.equal((await ctx.get('/api/bpbd/state')).status(),401);
 });
+test('Research CSV export checks owner, download permission and latest row validation on the server',async()=>{
+  const researcher=await login('nadia@peneliti.example'),admin=await login('adm@bpbd.example');
+  const exported=await researcher.get('/api/bpbd/research/RSET-001/csv');
+  assert.equal(exported.status(),200,await exported.text());
+  assert.match(exported.headers()['content-type'],/text\/csv/);
+  assert.match(await exported.text(),/Kejadian Bencana/);
+  assert.equal((await researcher.get('/api/bpbd/research/RSET-003/csv')).status(),403);
+  assert.equal((await admin.get('/api/bpbd/research/RSET-001/csv')).status(),403);
+  const original=(await testPool.query('SELECT data FROM bpbd_research WHERE id=$1',['RSET-001'])).rows[0].data;
+  const rowId=original.decisions.KL.validatedRows[0].id;
+  const row=(await testPool.query('SELECT data FROM bpbd_entries WHERE id=$1',[rowId])).rows[0].data;
+  try {
+    await testPool.query('UPDATE bpbd_research SET data=$2 WHERE id=$1',['RSET-001',JSON.stringify({...original,download:false})]);
+    assert.equal((await researcher.get('/api/bpbd/research/RSET-001/csv')).status(),403);
+    await testPool.query('UPDATE bpbd_research SET data=$2 WHERE id=$1',['RSET-001',JSON.stringify({...original,access:'Dicabut'})]);
+    assert.equal((await researcher.get('/api/bpbd/research/RSET-001/csv')).status(),403);
+    await testPool.query('UPDATE bpbd_research SET data=$2 WHERE id=$1',['RSET-001',JSON.stringify(original)]);
+    await testPool.query('UPDATE bpbd_entries SET data=$2 WHERE id=$1',[rowId,JSON.stringify({...row,version:row.version+1})]);
+    assert.equal((await researcher.get('/api/bpbd/research/RSET-001/csv')).status(),409);
+  }finally{
+    await testPool.query('UPDATE bpbd_research SET data=$2 WHERE id=$1',['RSET-001',JSON.stringify(original)]);
+    await testPool.query('UPDATE bpbd_entries SET data=$2 WHERE id=$1',[rowId,JSON.stringify(row)]);
+  }
+});
+
+test('WhatsApp worker previews without sending and deduplicates accepted weekly dispatches in PostgreSQL', async () => {
+  const { todayWib } = await import('../lib/bpbd/research-reminders.ts');
+  const current = Date.parse(`${todayWib()}T00:00:00Z`);
+  const deadline = new Date(current + 30 * 86400000).toISOString().slice(0,10);
+  await testPool.query('UPDATE bpbd_users SET data=data || $1::jsonb WHERE id=$2',[JSON.stringify({phone:'6281234567890',whatsappConsent:true}),'PEN-001']);
+  await testPool.query('UPDATE bpbd_research SET data=data || $1::jsonb WHERE id=$2',[JSON.stringify({deadline,versions:[]}),'RSET-001']);
+  const workerEnv={...environment,WHATSAPP_ACCESS_TOKEN:'test-only-token',WHATSAPP_PHONE_NUMBER_ID:'12345',WHATSAPP_GRAPH_VERSION:'v1.0',WHATSAPP_TEMPLATE_NAME:'test_reminder',WHATSAPP_TEMPLATE_LANGUAGE:'id'};
+  const run=(args=[])=>execFileSync(process.execPath,['--import','./tests/mock-whatsapp.mjs','scripts/research-reminders.ts',...args],{env:workerEnv,timeout:30000,encoding:'utf8',windowsHide:true});
+  assert.match(run(),/PRATINJAU/);
+  assert.equal((await testPool.query('SELECT count(*)::int AS count FROM bpbd_research_reminders')).rows[0].count,0);
+  run(['--send']);run(['--send']);
+  const rows=(await testPool.query('SELECT state,message_id FROM bpbd_research_reminders')).rows;
+  assert.equal(rows.length,1);assert.equal(rows[0].state,'accepted');assert.equal(rows[0].message_id,'wamid.integration-test');
+});
+
 test('Browser workflows use PostgreSQL, including login, forms, import, reports and research', { timeout: 360000 }, async () => {
   await new Promise((resolve,reject)=>{
     const child=spawn(process.execPath,['node_modules/@playwright/test/cli.js','test'],{env:{...environment,PLAYWRIGHT_BASE_URL:baseURL},stdio:['ignore','pipe','pipe'],windowsHide:true});

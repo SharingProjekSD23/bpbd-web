@@ -16,9 +16,10 @@
     "db:setup": "node --env-file-if-exists=.env.local scripts/setup-db.ts",
     "db:check": "node --env-file-if-exists=.env.local scripts/check-db.ts",
     "typecheck": "tsc --noEmit --incremental false",
-    "test": "node --test tests/domain.test.mjs tests/server.test.mjs",
+    "test": "node --test tests/domain.test.mjs tests/server.test.mjs tests/research.test.mjs",
     "test:postgres": "node --env-file-if-exists=.env.local --test tests/postgres.test.mjs",
-    "test:browser": "npm run test:postgres"
+    "test:browser": "npm run test:postgres",
+    "research:reminders": "node --env-file-if-exists=.env.local scripts/research-reminders.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

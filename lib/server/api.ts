@@ -3,8 +3,8 @@ import { isDeepStrictEqual } from 'node:util';
 import type { PoolClient } from 'pg';
 import { z, ZodError } from 'zod';
 import { getPool } from '../../db/index.ts';
-import { sessionUser, timestamp, uid, type Store, type User } from '../bpbd/model.ts';
-import { validateDocument } from '../bpbd/files';
+import { sessionUser, timestamp, uid, normalizePhone, accessActive, authorizedResearchEntries, groups, type Store, type User } from '../bpbd/model.ts';
+import { csv, validateDocument } from '../bpbd/files';
 import { ApiError, mergeStore, requireThat, scopeStore } from './policy.ts';
 import { readStore, writeStore } from './repository.ts';
 import { tokenHash, verifyPassword } from './passwords.ts';
@@ -95,9 +95,9 @@ export async function handleApi(request: Request) {
       const token = await newSession(client, user);
       result = response({ store: scopeStore(store, user), revision: snapshot.revision, userId: user.id }, 200, { 'Set-Cookie': cookie(request, token) });
     } else if (path === 'register' && request.method === 'POST') {
-      const input = z.object({ name: z.string().trim().min(1).max(200), email: z.string().email().max(254), institution: z.string().trim().min(1).max(300), purpose: z.string().trim().min(1).max(5000), password: z.string().min(8).max(256), consent: z.literal(true) }).strict().parse(await json(request));
+      const input = z.object({ phone: z.string().max(40).refine(v => !!normalizePhone(v), 'Nomor telepon tidak valid.'), name: z.string().trim().min(1).max(200), email: z.string().email().max(254), institution: z.string().trim().min(1).max(300), purpose: z.string().trim().min(1).max(5000), password: z.string().min(8).max(256), consent: z.literal(true) }).strict().parse(await json(request));
       requireThat(!store.users.some(u => u.email.toLowerCase() === input.email.toLowerCase()), 'Email sudah digunakan.', 409);
-      const user: User = { id: uid('PEN'), name: input.name, email: input.email.trim().toLowerCase(), institution: input.institution, note: input.purpose, role: 'PEN', status: 'Menunggu Persetujuan', demoPassword: input.password };
+      const user: User = { whatsappConsent: true, phone: normalizePhone(input.phone), id: uid('PEN'), name: input.name, email: input.email.trim().toLowerCase(), institution: input.institution, note: input.purpose, role: 'PEN', status: 'Menunggu Persetujuan', demoPassword: input.password };
       const next = structuredClone(store); next.users.push(user);
       next.audit.unshift({ id: uid('AUD'), at: timestamp(), actor: user.name, role: 'PEN', action: 'Pendaftaran peneliti diajukan', object: user.id });
       await writeStore(client, store, next);
@@ -110,6 +110,15 @@ export async function handleApi(request: Request) {
       const user = await account(client, request, store);
       if (path === 'state' && request.method === 'GET') {
         result = response({ store: scopeStore(store, user), revision: snapshot.revision, userId: user.id });
+      } else if (/^research\/[\w-]+\/csv$/.test(path) && request.method === 'GET') {
+        const research = store.research.find(r => r.id === path.split('/')[1] && r.owner === user.id);
+        requireThat(user.role === 'PEN' && user.status === 'Aktif' && research, 'Data penelitian tidak tersedia.', 403);
+        requireThat(research.download && accessActive(research), 'Izin ekspor CSV belum aktif atau tidak diberikan.', 403);
+        const rows = authorizedResearchEntries(store, research, user.id);
+        requireThat(rows.length > 0, 'Belum ada data tervalidasi yang dapat diekspor.', 409);
+        result = new Response(csv([['id','dataset','judul','kecamatan','tanggal','jumlah','satuan'], ...rows.map(e => [e.id,groups[e.group].name,e.title,e.area,e.date,String(e.amount),e.unit])]), {
+          headers: { 'Content-Type': 'text/csv;charset=utf-8', 'Content-Disposition': `attachment; filename="${research.id}-data-disetujui.csv"`, 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff' },
+        });
       } else if (path === 'state' && request.method === 'PUT') {
         const input = z.object({ revision: z.number().int(), store: z.unknown(), action: z.string().max(250), object: z.string().max(120) }).strict().parse(await json(request));
         requireThat(input.revision === snapshot.revision, 'Data sudah diperbarui pengguna lain. Data terbaru dimuat; tinjau kembali isian sebelum menyimpan.', 409);

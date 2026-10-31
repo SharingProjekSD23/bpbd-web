@@ -33,3 +33,11 @@ export const files = pgTable('bpbd_files', {
   name: text('name').notNull(), mime: text('mime').notNull(), content: bytea('content').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Durable dispatch records prevent duplicate weekly research reminders.
+export const researchReminders = pgTable('bpbd_research_reminders', {
+  key: text('key').primaryKey(), researchId: text('research_id').notNull().references(() => research.id, { onDelete: 'cascade' }),
+  deadline: text('deadline').notNull(), slot: integer('slot').notNull(),
+  state: text('state').notNull(), messageId: text('message_id'),
+  attemptedAt: timestamp('attempted_at', { withTimezone: true }).notNull().defaultNow(),
+});
