@@ -74,24 +74,19 @@ test('API sessions, cookie flags, password hashing, CSRF and scope enforcement',
   assert.ok(hashes.rows.every(r=>r.password_hash.startsWith('scrypt:')&&!JSON.stringify(r.data).includes('BPBDdemo2026!')));
   await save(ctx,snapshot,s=>{s.users.find(u=>u.id==='USER-KL').role='ADM';},403);
 });
-test('Two sessions share committed records and stale writes are rejected atomically', async () => {
-  const a=await login('kl@bpbd.example'),b=await login('kl@bpbd.example');
-  const first=await state(a),stale=await state(b);
-  await save(a,first,s=>{const e=s.entries.find(e=>e.id==='KJD-001');e.title='Data bersama dari PostgreSQL';e.status='Menunggu Persetujuan';});
-  assert.equal((await state(b)).store.entries.find(e=>e.id==='KJD-001').title,'Data bersama dari PostgreSQL');
-  await save(b,stale,s=>{s.entries[0].title='Tidak boleh menimpa';},409);
-  const saved=await testPool.query('SELECT data FROM bpbd_entries WHERE id=$1',['KJD-001']);
-  assert.equal(saved.rows[0].data.title,'Data bersama dari PostgreSQL');
-  const admin=await login('adm@bpbd.example');
-  await save(admin,await state(admin),s=>{s.entries.find(e=>e.id==='KJD-001').status='Disetujui';});
-  assert.equal((await state(a)).store.entries.find(e=>e.id==='KJD-001').status,'Disetujui');
+test('Two sessions share profile changes and reject stale snapshots',async()=>{
+ const a=await login('kl@bpbd.example'),b=await login('kl@bpbd.example'),first=await state(a),stale=await state(b);
+ await save(a,first,s=>{s.users.find(u=>u.id==='USER-KL').name='Petugas PostgreSQL';});
+ assert.equal((await state(b)).store.users.find(u=>u.id==='USER-KL').name,'Petugas PostgreSQL');
+ await save(b,stale,s=>{s.users.find(u=>u.id==='USER-KL').name='Perubahan lama';},409);
 });
+
 test('Uploaded documents persist in PostgreSQL and downloads enforce field access', async () => {
   const owner=await login('kl@bpbd.example'),peer=await login('kl@bpbd.example'),other=await login('pk@bpbd.example');
   const fileId='FILE-integration',document=Buffer.from('%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF');
   const upload=await owner.put(`/api/bpbd/files/${fileId}`,{headers:{'X-File-Name':'uji.pdf','Content-Type':'application/pdf'},data:document});
   assert.equal(upload.status(),201,await upload.text());
-  await save(owner,await state(owner),s=>{const e=s.entries.find(e=>e.id==='KJD-001');e.fileId=fileId;e.fileName='uji.pdf';e.status='Menunggu Persetujuan';});
+  // An unattached upload stays private to its owning account; operational file links use the new API.
   const download=await peer.get(`/api/bpbd/files/${fileId}`);assert.equal(download.status(),200);assert.deepEqual(await download.body(),document);
   assert.equal((await other.get(`/api/bpbd/files/${fileId}`)).status(),403);
   assert.equal((await testPool.query('SELECT octet_length(content)::int AS size FROM bpbd_files WHERE id=$1',[fileId])).rows[0].size,document.length);

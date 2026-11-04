@@ -77,8 +77,8 @@ test('Admin approves the whole request or rejects it and revokes previous access
   assert.throws(()=>mergeStore(s,copy,actor,'Keputusan',r.id));
  }
 });
-test('Secretariat coordinates deadlines while the request stays submitted',()=>{
- const s=seedStore(),actor=s.users.find(u=>u.role==='SEK'),copy=scopeStore(s,actor);
+test('Admin coordinates deadlines while the request stays submitted',()=>{
+ const s=seedStore(),actor=s.users.find(u=>u.role==='ADM'),copy=scopeStore(s,actor);
  const r=copy.research.find(r=>r.status==='Diajukan');
  r.deadline='2026-12-30';
  assert.equal(mergeStore(s,copy,actor,'Koordinasi',r.id).research.find(x=>x.id===r.id).status,'Diajukan');

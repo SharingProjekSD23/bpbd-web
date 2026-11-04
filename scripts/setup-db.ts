@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import pg from 'pg';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getDb, getPool } from '../db/index.ts';
@@ -20,6 +21,7 @@ async function main() {
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
+    await client.query(await readFile('sql/integrasi.sql', 'utf8'));
     await client.query("SELECT pg_advisory_xact_lock(hashtext('bpbd-initial-seed'))");
     const ready = await client.query('SELECT 1 FROM bpbd_meta WHERE id=1');
     if (!ready.rowCount) {

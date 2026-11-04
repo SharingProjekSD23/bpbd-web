@@ -1,6 +1,6 @@
 import { isDeepStrictEqual as equal } from 'node:util';
 import { z } from 'zod';
-import { approvedGroups, authorizedResearchEntries, requestedResearchEntries, researchDataValidated, normalizePhone, canEdit, canRead, filterEntries, groups, isReviewer, operationalStatuses, researchStatuses, referenceDate, timestamp, uid, validateEntry, type Entry, type Research, type Store, type User } from '../bpbd/model.ts';
+import { approvedGroups, authorizedResearchEntries, requestedResearchEntries, researchDataValidated, normalizePhone, canEdit, canRead, filterEntries, groups, isReviewer, researchStatuses, referenceDate, timestamp, uid, type Entry, type Research, type Store, type User } from '../bpbd/model.ts';
 
 export class ApiError extends Error {
   status: number;
@@ -14,7 +14,6 @@ const id = z.string().min(1).max(120).regex(/^[\w-]+$/);
 const event = z.object({ at: str, actor: str, action: str, note: str.optional() }).strict();
 const role = z.enum(['ADM', 'PK', 'KL', 'RR', 'SEK', 'PEN']);
 const userSchema = z.object({ whatsappConsent: z.boolean().optional(), phone: z.string().max(40).refine(v => !v || !!normalizePhone(v), 'Nomor telepon tidak valid.').optional(), id, name: str.min(1), email: z.string().email().max(254), role, institution: str, status: z.enum(['Aktif', 'Nonaktif', 'Menunggu Persetujuan', 'Perlu Perbaikan', 'Ditolak']), note: str, demoPassword: z.string().max(256) }).strict();
-const entrySchema = z.object({ id, group: str, title: str.min(1), area: str, hazard: str, date: str, status: z.enum(operationalStatuses as [string, ...string[]]), handling: z.enum(['Dalam penanganan', 'Selesai']), amount: z.number().finite(), unit: str, description: str, version: z.number().int().positive(), history: z.array(event), archived: z.boolean().optional(), linkedId: id.optional(), fileId: id.optional(), fileName: str.optional() }).strict();
 const resultSchema = z.object({ id, at: str, filename: str, fileId: id, summary: str, feedback: str, review: str, note: str }).strict();
 const decisionSchema = z.object({ status: z.enum(['Disetujui', 'Ditolak']), note: str, groups: z.array(str), download: z.boolean().optional(), accessEnd: str.optional(), validatedRows: z.array(z.object({ id, version: z.number().int().positive() }).strict()).optional() }).strict();
 const researchSchema = z.object({ validation: z.object({ at: str, rows: z.array(z.object({ id, version: z.number().int().positive() }).strict()) }).strict().optional(), id, owner: id, title: str.min(1), institution: str, purpose: str, requestedGroups: z.array(str).min(1), area: str, start: str, end: str, deadline: str, status: z.enum(researchStatuses), access: str, accessEnd: str, download: z.boolean(), decisions: z.record(decisionSchema), history: z.array(event), versions: z.array(resultSchema), extension: z.object({ date: str, reason: str }).strict().optional(), supportingId: id.optional(), supportingName: str.optional(), complete: z.boolean().optional() }).strict();
@@ -74,8 +73,18 @@ function validateResearch(store: Store, actor: User, old: Research | undefined, 
   } else {
     requireThat(old, 'Permohonan tidak ditemukan.', 404);
     requireThat(old.owner === next.owner);
+    requireThat(actor.role === 'ADM', 'Seluruh verifikasi penelitian hanya dapat dilakukan Admin.');
     if (actor.role === 'ADM') {
-      if (!equal(old.decisions, next.decisions)) {
+      if (!equal(old.versions, next.versions)) {
+        fields(old, next, ['versions', 'history']);
+        requireThat(old.versions.length > 0 && next.versions.length === old.versions.length && equal(old.versions.slice(0, -1), next.versions.slice(0, -1)));
+        fields(old.versions.at(-1)!, next.versions.at(-1)!, ['review', 'note']);
+        requireThat(['Sedang Ditinjau', 'Perlu Perbaikan', 'Selesai Ditinjau'].includes(next.versions.at(-1)!.review) && next.versions.at(-1)!.note.trim());
+      } else if (old.deadline !== next.deadline || !equal(old.extension, next.extension) || old.complete !== next.complete) {
+        fields(old, next, ['deadline', 'history', 'extension', 'complete']);
+        requireThat(/^\d{4}-\d{2}-\d{2}$/.test(next.deadline) && Number.isFinite(Date.parse(next.deadline)) && new Date(next.deadline).toISOString().slice(0,10) === next.deadline, 'Tenggat tidak valid.', 400);
+        requireThat(!next.complete || next.versions.length > 0, 'Hasil penelitian belum diunggah.', 400);
+      } else if (!equal(old.decisions, next.decisions)) {
         fields(old, next, ['decisions', 'status', 'download', 'accessEnd', 'history']);
         const decision = next.decisions.ADM;
         requireThat(Object.keys(next.decisions).length === 1 && decision && decision.note.trim(), 'Keputusan harus ditetapkan Admin Sistem.');
@@ -100,18 +109,6 @@ function validateResearch(store: Store, actor: User, old: Research | undefined, 
           requireThat(next.accessEnd >= referenceDate && grants.every(d => next.accessEnd <= (d.accessEnd || old.accessEnd)), 'Masa izin melampaui keputusan persetujuan.');
           requireThat(!next.download || grants.every(d => d.download === true), 'Hak unduh belum disetujui.');
         }
-      }
-    } else if (actor.role === 'SEK') {
-      fields(old, next, ['deadline', 'history', 'extension', 'complete']);
-    } else {
-      requireThat(isReviewer(store, actor.role) && old.requestedGroups.some(g => groups[g]?.role === actor.role));
-      if (!equal(old.versions, next.versions)) {
-        fields(old, next, ['versions', 'history']);
-        requireThat(old.versions.length > 0 && next.versions.length === old.versions.length && equal(old.versions.slice(0, -1), next.versions.slice(0, -1)));
-        fields(old.versions.at(-1)!, next.versions.at(-1)!, ['review', 'note']);
-        requireThat(['Sedang Ditinjau', 'Perlu Perbaikan', 'Selesai Ditinjau'].includes(next.versions.at(-1)!.review) && next.versions.at(-1)!.note.trim());
-      } else {
-        requireThat(false, 'Keputusan permohonan hanya dapat ditetapkan Admin Sistem.');
       }
     }
   }
@@ -150,22 +147,7 @@ export function mergeStore(store: Store, submitted: Store, actor: User, action: 
       } else {
         requireThat(actor.status === 'Aktif');
         if (name === 'entries') {
-          const entry = row as Entry, previous = old as Entry | undefined;
-          entrySchema.parse(entry);
-          requireThat(groups[entry.group] && !Object.keys(validateEntry(entry)).length && entry.unit === groups[entry.group].unit, 'Isian kegiatan tidak valid.', 400);
-          requireThat(!previous || previous.group === entry.group);
-          if (actor.role === 'ADM' && !canEdit(store, actor.role, entry.group)) {
-            requireThat(previous && previous.status === 'Menunggu Persetujuan');
-            fields(previous, entry, ['status', 'version', 'history']);
-            requireThat(['Disetujui', 'Perlu Perbaikan', 'Ditolak'].includes(entry.status));
-          } else {
-            requireThat(canEdit(store, actor.role, entry.group));
-            const archiveOnly = previous && Object.keys(entry).every(k => ['archived', 'version', 'history'].includes(k) || equal((previous as unknown as Record<string, unknown>)[k], (entry as unknown as Record<string, unknown>)[k]));
-            requireThat(archiveOnly || ['Draf', store.settings.approval ? 'Menunggu Persetujuan' : 'Disetujui'].includes(entry.status));
-          }
-          requireThat(!entry.archived || !store.entries.some(e => !e.archived && e.linkedId === entry.id), 'Data masih dirujuk catatan lain.', 409);
-          entry.version = (previous?.version || 0) + 1;
-          entry.history = history(previous?.history || [], entry.history, actor);
+          throw new ApiError(403, 'Gunakan modul Operasional atau Logistik untuk pencatatan baru. Dataset penelitian lama tetap dipertahankan.');
         } else if (name === 'research') validateResearch(store, actor, old as Research | undefined, row as Research);
         else if (name === 'reports') {
           const report = row as Store['reports'][number];
@@ -191,7 +173,7 @@ export function mergeStore(store: Store, submitted: Store, actor: User, action: 
     if (equal(visible[key], submitted[key])) continue;
     requireThat(actor.status === 'Aktif' && (key === 'template' ? actor.role === 'SEK' : actor.role === 'ADM'));
     if (key === 'settings') z.object({ maxUploadMb: z.number().int().min(1).max(10), reminderDays: z.number().int().min(1).max(30), approval: z.boolean() }).strict().parse(submitted[key]);
-    if (key === 'reviewer') z.object({ PK: z.boolean().optional(), KL: z.boolean().optional(), RR: z.boolean().optional() }).strict().parse(submitted[key]);
+    if (key === 'reviewer') requireThat(false, 'Verifikasi penelitian ditetapkan pada Admin.');
     if (key === 'adminOperational') z.boolean().parse(submitted[key]);
     if (key === 'masters') z.record(z.array(str)).parse(submitted[key]);
     if (key === 'template') {

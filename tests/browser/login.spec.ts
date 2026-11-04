@@ -24,13 +24,13 @@ test('anonymous access, old role sessions, invalid login, reload and logout', as
   await login(page, 'pk@bpbd.example', 'salah');
   await expect(page.getByRole('button', { name: 'Menu akun' })).toHaveCount(0);
   await login(page, 'PK@BPBD.EXAMPLE');
-  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Pencegahan dan Kesiapsiagaan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Logistik' })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Pencegahan dan Kesiapsiagaan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Logistik' })).toBeVisible();
   await page.goto('/data/kejadian');
   await expect(page.getByRole('heading', { name: 'Akses dibatasi' })).toBeVisible();
   await page.getByRole('button', { name: 'Kembali ke Beranda' }).click();
-  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Pencegahan dan Kesiapsiagaan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Logistik' })).toBeVisible();
   await page.getByRole('button', { name: 'Menu akun' }).click();
   await page.getByRole('menuitem', { name: 'Keluar' }).click();
   await expect(page.getByRole('heading', { name: 'Selamat datang kembali' })).toBeVisible();
@@ -52,9 +52,9 @@ test('legacy browser data is preserved but cannot replace database records or id
     if (!localStorage.getItem('bpbd-demo-v1')) localStorage.setItem('bpbd-demo-v1', JSON.stringify(store));
   }, legacy);
   await login(page, 'rr@bpbd.example');
-  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Rehabilitasi dan Rekonstruksi' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Logistik' })).toBeVisible();
   await login(page, 'kl@bpbd.example');
-  await expect(page.getByRole('heading', { name: 'Dashboard Bidang Kedaruratan dan Logistik' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard Logistik' })).toBeVisible();
   await page.goto('/data/kejadian/KJD-001');
   await expect(page.getByRole('heading', { name: 'Catatan lama tetap tersimpan' })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('bpbd-demo-v1')!).entries[0].title)).toBe('Catatan lama tetap tersimpan');

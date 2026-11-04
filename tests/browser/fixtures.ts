@@ -17,6 +17,7 @@ export const test = base.extend<{ resetDatabase: void }>({
   try {
     await client.query('BEGIN');
     await client.query('DELETE FROM bpbd_sessions');
+    for (const table of ['bpbd_op_links','bpbd_op_files','bpbd_op_imports','bpbd_source_links','bpbd_source_map','bpbd_source_records','bpbd_source_files','bpbd_op_records']) await client.query(`DELETE FROM ${table}`);
     await client.query('DELETE FROM bpbd_files');
     await client.query('DELETE FROM bpbd_research');
     for (const table of ['bpbd_users','bpbd_entries','bpbd_reports','bpbd_imports','bpbd_audit','bpbd_meta']) await client.query(`DELETE FROM ${table}`);

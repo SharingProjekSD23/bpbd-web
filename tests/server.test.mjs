@@ -21,17 +21,13 @@ test('Snapshots omit credentials and exclude other fields and researcher request
   const pending = scopeStore(store, store.users.find(u => u.id === 'PEN-002'));
   assert.equal(pending.research.length, 0); assert.equal(pending.entries.length, 0);
 });
-test('Field writes preserve hidden rows and enforce approval and audit identity', () => {
+test('Legacy dataset writers cannot bypass the integrated operational API', () => {
   const store = seedStore(), actor = store.users.find(u => u.role === 'KL');
   const next = scopeStore(store, actor), row = next.entries[0];
   row.title = 'Kegiatan uji'; row.status = 'Menunggu Persetujuan';
   row.history.push({at:'forged',actor:'forged',action:'Diajukan'});
-  const merged = mergeStore(store, next, actor, 'Data diperbarui', row.id);
-  assert.equal(merged.entries.length, store.entries.length);
-  assert.equal(merged.entries.find(e => e.id === row.id).title, 'Kegiatan uji');
-  assert.equal(merged.entries.find(e => e.id === row.id).history.at(-1).actor, actor.name);
-  assert.equal(merged.audit[0].actor, actor.name);
-  row.status = 'Disetujui'; assert.throws(() => mergeStore(store, next, actor, '', ''), /diizinkan/);
+  assert.throws(() => mergeStore(store, next, actor, 'Data diperbarui', row.id), /Gunakan modul Operasional/);
+  assert.equal(store.entries[0].title === 'Kegiatan uji', false);
 });
 test('Forged role, cross-field record, audit edit and removing records are denied', () => {
   const store = seedStore(), actor = store.users.find(u => u.role === 'KL');
@@ -46,18 +42,18 @@ test('Forged role, cross-field record, audit edit and removing records are denie
     assert.throws(() => mergeStore(store,next,actor,'',''));
   }
 });
-test('Admin can approve a pending entry without gaining content editing rights', () => {
-  const store = seedStore(), actor = store.users.find(u=>u.role==='ADM');
-  const next=scopeStore(store,actor),row=next.entries.find(e=>e.status==='Menunggu Persetujuan');
-  row.status='Disetujui';
-  assert.equal(mergeStore(store,next,actor,'Persetujuan',row.id).entries.find(e=>e.id===row.id).status,'Disetujui');
-  row.title='forged'; assert.throws(()=>mergeStore(store,next,actor,'',''));
+test('Operational approvals are retired from legacy dataset API', () => {
+  const store=seedStore(), actor=store.users.find(u=>u.role==='ADM'), next=scopeStore(store,actor);
+  next.entries[0].status='Disetujui'; next.entries[0].title='changed';
+  assert.throws(()=>mergeStore(store,next,actor,'',''), /Gunakan modul Operasional/);
 });
 test('Researchers cannot change grants and reviewers cannot decide another field', () => {
   const store=seedStore(), researcher=store.users.find(u=>u.id==='PEN-001');
   const next=scopeStore(store,researcher);next.research[0].decisions.ADM.groups.push('logistik');
   assert.throws(()=>mergeStore(store,next,researcher,'',''));
   const actor=store.users.find(u=>u.role==='KL'),field=scopeStore(store,actor);
+  assert.equal(field.research.length,0);
+  field.research.push(structuredClone(store.research[0]));
   field.research[0].decisions.PK={status:'Disetujui',groups:['mitigasi'],note:'forged'};
   assert.throws(()=>mergeStore(store,field,actor,'',''));
 });

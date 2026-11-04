@@ -1,0 +1,1217 @@
+[
+  {
+    "id": "dokumen",
+    "unit": "SK",
+    "title": "Dokumen & kegiatan",
+    "description": "Rencana, pelaksanaan, dan bukti penyelesaian per periode.",
+    "fields": [
+      {
+        "key": "nama",
+        "label": "Nama dokumen / kegiatan",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "tahun",
+        "label": "Tahun",
+        "type": "integer"
+      },
+      {
+        "key": "periode",
+        "label": "Periode (mis. Januari / Triwulan I)",
+        "type": "text"
+      },
+      {
+        "key": "keluaran",
+        "label": "Bentuk keluaran",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Dokumen",
+          "Laporan"
+        ]
+      },
+      {
+        "key": "tenggat",
+        "label": "Tenggat penyelesaian",
+        "type": "date",
+        "required": false
+      },
+      {
+        "key": "tanggal",
+        "label": "Tanggal realisasi",
+        "type": "date",
+        "required": false
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "type": "select",
+        "options": [
+          "Direncanakan",
+          "Berlangsung",
+          "Selesai",
+          "Ditunda",
+          "Dibatalkan",
+          "Belum diketahui"
+        ]
+      },
+      {
+        "key": "penanggung_jawab",
+        "label": "Penanggung jawab",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "output",
+        "label": "Output / realisasi",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      }
+    ],
+    "columns": [
+      "nama",
+      "periode",
+      "tenggat",
+      "status"
+    ]
+  },
+  {
+    "id": "pencegahan",
+    "unit": "PK",
+    "title": "Program & kegiatan",
+    "description": "Pencegahan dan kesiapsiagaan sesuai jenis kegiatan.",
+    "fields": [
+      {
+        "key": "nama",
+        "label": "Nama program / kegiatan",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "tahun",
+        "label": "Tahun",
+        "type": "integer"
+      },
+      {
+        "key": "jenis",
+        "label": "Jenis pencatatan",
+        "type": "select",
+        "options": [
+          "Penyusunan dokumen",
+          "Sosialisasi",
+          "Pelatihan",
+          "Simulasi",
+          "Pengembangan kapasitas",
+          "Lainnya"
+        ]
+      },
+      {
+        "key": "rencana",
+        "label": "Tanggal rencana",
+        "type": "date",
+        "required": false
+      },
+      {
+        "key": "tanggal",
+        "label": "Tanggal pelaksanaan",
+        "type": "date",
+        "required": false
+      },
+      {
+        "key": "kecamatan",
+        "label": "Kecamatan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "kelurahan",
+        "label": "Kelurahan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "alamat",
+        "label": "Alamat",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "target_peserta",
+        "label": "Target peserta",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "realisasi_peserta",
+        "label": "Realisasi peserta",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "type": "select",
+        "options": [
+          "Direncanakan",
+          "Berlangsung",
+          "Selesai",
+          "Ditunda",
+          "Dibatalkan",
+          "Belum diketahui"
+        ]
+      },
+      {
+        "key": "penanggung_jawab",
+        "label": "Penanggung jawab",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "output",
+        "label": "Output / hasil kegiatan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      },
+      {
+        "key": "target_output",
+        "label": "Target keluaran",
+        "type": "text"
+      }
+    ],
+    "columns": [
+      "nama",
+      "jenis",
+      "tanggal",
+      "kecamatan",
+      "status"
+    ]
+  },
+  {
+    "id": "kejadian",
+    "unit": "KL",
+    "title": "Data kejadian",
+    "description": "Satu kejadian tercatat sekali, dengan rincian dampaknya.",
+    "fields": [
+      {
+        "key": "nama",
+        "label": "Judul / ringkasan kejadian",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "jenis_bencana",
+        "label": "Jenis bencana",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Banjir",
+          "Kebakaran",
+          "Kebakaran Lahan",
+          "Kekeringan",
+          "Lainnya",
+          "OPS SAR",
+          "Pohon Tumbang",
+          "Puting Beliung",
+          "Rumah Roboh",
+          "Talud Longsor",
+          "Tanah Ambles",
+          "Tanah Gerak",
+          "Tanah Longsor",
+          "tanah gerak"
+        ]
+      },
+      {
+        "key": "tanggal",
+        "label": "Tanggal kejadian",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "pukul",
+        "label": "Pukul kejadian",
+        "type": "time",
+        "required": false
+      },
+      {
+        "key": "tanggal_lapor",
+        "label": "Tanggal laporan",
+        "type": "date",
+        "required": false
+      },
+      {
+        "key": "kecamatan",
+        "label": "Kecamatan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "kelurahan",
+        "label": "Kelurahan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "alamat",
+        "label": "Alamat",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "kk",
+        "label": "KK terdampak",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "jiwa",
+        "label": "Jiwa terdampak",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "pengungsi",
+        "label": "Pengungsi",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "meninggal",
+        "label": "Meninggal dunia",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "luka_berat",
+        "label": "Luka berat",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "luka_ringan",
+        "label": "Luka ringan",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "kerugian",
+        "label": "Estimasi kerugian (Rp)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "key": "status_kerugian",
+        "label": "Status estimasi",
+        "type": "select",
+        "required": false,
+        "options": [
+          "Belum diketahui",
+          "Sementara",
+          "Terverifikasi"
+        ]
+      },
+      {
+        "key": "kronologi",
+        "label": "Kronologi",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "maps",
+        "label": "Tautan peta",
+        "type": "url",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      },
+      {
+        "key": "foto",
+        "label": "Tautan dokumentasi",
+        "type": "url"
+      },
+      {
+        "key": "pemilik",
+        "label": "Pemilik terdampak",
+        "type": "textarea"
+      },
+      {
+        "key": "kontak",
+        "label": "Kontak sumber",
+        "type": "text"
+      },
+      {
+        "key": "sumber_info",
+        "label": "Sumber informasi",
+        "type": "text"
+      }
+    ],
+    "columns": [
+      "nama",
+      "jenis_bencana",
+      "tanggal",
+      "kecamatan",
+      "kk",
+      "jiwa"
+    ]
+  },
+  {
+    "id": "barang",
+    "unit": "KL",
+    "title": "Master barang",
+    "description": "Satuan dan batas minimum menjadi acuan transaksi persediaan.",
+    "fields": [
+      {
+        "key": "nama",
+        "label": "Nama barang",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "satuan",
+        "label": "Satuan (kg / lembar / paket)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "minimum",
+        "label": "Batas minimum per sumber (opsional)",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      },
+      {
+        "key": "kategori",
+        "label": "Kategori",
+        "type": "text"
+      },
+      {
+        "key": "tracking_expired",
+        "label": "Pemantauan kedaluwarsa",
+        "type": "select",
+        "options": [
+          "Ya",
+          "Tidak"
+        ]
+      }
+    ],
+    "columns": [
+      "id",
+      "nama",
+      "satuan",
+      "minimum"
+    ]
+  },
+  {
+    "id": "masuk",
+    "unit": "KL",
+    "title": "Logistik masuk",
+    "description": "Penerimaan atau saldo awal dicatat per barang dan sumber.",
+    "fields": [
+      {
+        "key": "tanggal",
+        "label": "Tanggal transaksi",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "barang",
+        "label": "Kode barang",
+        "type": "barang",
+        "required": true
+      },
+      {
+        "key": "jumlah",
+        "label": "Jumlah",
+        "type": "integer",
+        "required": true
+      },
+      {
+        "key": "sumber",
+        "label": "Sumber persediaan / anggaran",
+        "type": "select",
+        "required": true,
+        "options": [
+          "APBD",
+          "APBN",
+          "BTT",
+          "DSP",
+          "CSR",
+          "Donatur",
+          "Lainnya",
+          "Saldo gabungan K1"
+        ]
+      },
+      {
+        "key": "jenis",
+        "label": "Jenis penerimaan",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Penerimaan",
+          "Saldo awal",
+          "Koreksi tambah"
+        ]
+      },
+      {
+        "key": "referensi",
+        "label": "Nomor dokumen / referensi",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan / alasan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      },
+      {
+        "key": "sumber_barang",
+        "label": "Asal bantuan / donor",
+        "type": "text"
+      },
+      {
+        "key": "tujuan_penggunaan",
+        "label": "Tujuan penggunaan",
+        "type": "text"
+      },
+      {
+        "key": "penerima",
+        "label": "Penerima",
+        "type": "text"
+      },
+      {
+        "key": "kecamatan",
+        "label": "Kecamatan tujuan",
+        "type": "text"
+      },
+      {
+        "key": "kondisi",
+        "label": "Kondisi barang",
+        "type": "text"
+      },
+      {
+        "key": "batch_number",
+        "label": "Nomor batch",
+        "type": "text"
+      },
+      {
+        "key": "expired_date",
+        "label": "Tanggal kedaluwarsa",
+        "type": "date"
+      }
+    ],
+    "columns": [
+      "tanggal",
+      "barang",
+      "jumlah",
+      "sumber",
+      "jenis"
+    ]
+  },
+  {
+    "id": "keluar",
+    "unit": "KL",
+    "title": "Logistik keluar",
+    "description": "Penyaluran terhubung ke kejadian dan mengurangi stok sumber yang dipilih.",
+    "fields": [
+      {
+        "key": "tanggal",
+        "label": "Tanggal penyaluran",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "kejadian_id",
+        "label": "Kejadian terkait (opsional)",
+        "type": "kejadian",
+        "required": false
+      },
+      {
+        "key": "barang",
+        "label": "Kode barang",
+        "type": "barang",
+        "required": true
+      },
+      {
+        "key": "jumlah",
+        "label": "Jumlah",
+        "type": "integer",
+        "required": true
+      },
+      {
+        "key": "sumber",
+        "label": "Sumber persediaan / anggaran",
+        "type": "select",
+        "required": true,
+        "options": [
+          "APBD",
+          "APBN",
+          "BTT",
+          "DSP",
+          "CSR",
+          "Donatur",
+          "Lainnya",
+          "Saldo gabungan K1"
+        ]
+      },
+      {
+        "key": "tujuan",
+        "label": "Penerima / tujuan",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan / alasan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      },
+      {
+        "key": "sumber_barang",
+        "label": "Asal bantuan / donor",
+        "type": "text"
+      },
+      {
+        "key": "tujuan_penggunaan",
+        "label": "Tujuan penggunaan",
+        "type": "text"
+      },
+      {
+        "key": "penerima",
+        "label": "Penerima",
+        "type": "text"
+      },
+      {
+        "key": "kecamatan",
+        "label": "Kecamatan tujuan",
+        "type": "text"
+      },
+      {
+        "key": "kondisi",
+        "label": "Kondisi barang",
+        "type": "text"
+      },
+      {
+        "key": "batch_number",
+        "label": "Nomor batch",
+        "type": "text"
+      },
+      {
+        "key": "expired_date",
+        "label": "Tanggal kedaluwarsa",
+        "type": "date"
+      }
+    ],
+    "columns": [
+      "tanggal",
+      "kejadian_id",
+      "barang",
+      "jumlah",
+      "sumber",
+      "tujuan"
+    ]
+  },
+  {
+    "id": "opname",
+    "unit": "KL",
+    "title": "Stok opname",
+    "description": "Pemeriksaan fisik. Selisih ditampilkan untuk ditindaklanjuti; tidak otomatis mengubah stok.",
+    "fields": [
+      {
+        "key": "tanggal",
+        "label": "Tanggal pemeriksaan",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "barang",
+        "label": "Kode barang",
+        "type": "barang",
+        "required": true
+      },
+      {
+        "key": "sumber",
+        "label": "Sumber persediaan / anggaran",
+        "type": "select",
+        "required": true,
+        "options": [
+          "APBD",
+          "APBN",
+          "BTT",
+          "DSP",
+          "CSR",
+          "Donatur",
+          "Lainnya",
+          "Saldo gabungan K1"
+        ]
+      },
+      {
+        "key": "fisik",
+        "label": "Jumlah fisik",
+        "type": "integer",
+        "required": true
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan / alasan selisih",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      }
+    ],
+    "columns": [
+      "tanggal",
+      "barang",
+      "sumber",
+      "buku",
+      "fisik",
+      "selisih"
+    ]
+  },
+  {
+    "id": "btt",
+    "unit": "RR",
+    "title": "Asesmen BTT",
+    "description": "Progres survei, penyelesaian asesmen, bendahara, dan transfer dicatat terpisah.",
+    "fields": [
+      {
+        "key": "nama",
+        "label": "Nama / objek asesmen",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "kejadian_id",
+        "label": "Kejadian terkait (opsional)",
+        "type": "kejadian",
+        "required": false
+      },
+      {
+        "key": "tanggal",
+        "label": "Tanggal survei",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "kecamatan",
+        "label": "Kecamatan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "kelurahan",
+        "label": "Kelurahan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "alamat",
+        "label": "Alamat",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "jenis_bencana",
+        "label": "Jenis kejadian",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "asesmen_selesai",
+        "label": "Asesmen selesai",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Belum diketahui",
+          "Belum",
+          "Ya"
+        ]
+      },
+      {
+        "key": "tanggal_selesai",
+        "label": "Tanggal asesmen selesai",
+        "type": "date",
+        "required": false
+      },
+      {
+        "key": "bendahara",
+        "label": "Diserahkan ke bendahara",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Belum diketahui",
+          "Belum",
+          "Ya"
+        ]
+      },
+      {
+        "key": "tanggal_bendahara",
+        "label": "Tanggal penyerahan",
+        "type": "date",
+        "required": false
+      },
+      {
+        "key": "transfer",
+        "label": "Sudah ditransfer",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Belum diketahui",
+          "Belum",
+          "Ya"
+        ]
+      },
+      {
+        "key": "tanggal_transfer",
+        "label": "Tanggal transfer",
+        "type": "date",
+        "required": false
+      },
+      {
+        "key": "tahap",
+        "label": "Tahap pengajuan BTT",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      }
+    ],
+    "columns": [
+      "nama",
+      "tanggal",
+      "kelurahan",
+      "asesmen_selesai",
+      "bendahara",
+      "transfer",
+      "tahap"
+    ]
+  },
+  {
+    "id": "alokasi",
+    "unit": "RR",
+    "title": "Alokasi air",
+    "description": "Simpan alokasi murni dan perubahan sebagai versi; dipakai satu versi aktif per tahun dan sumber.",
+    "fields": [
+      {
+        "key": "tahun",
+        "label": "Tahun",
+        "type": "integer"
+      },
+      {
+        "key": "sumber",
+        "label": "Sumber persediaan / anggaran",
+        "type": "select",
+        "options": [
+          "APBD",
+          "APBN",
+          "BTT",
+          "DSP",
+          "CSR",
+          "Donatur",
+          "Lainnya"
+        ]
+      },
+      {
+        "key": "versi",
+        "label": "Versi anggaran",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Murni",
+          "Perubahan"
+        ]
+      },
+      {
+        "key": "tanggal",
+        "label": "Tanggal berlaku",
+        "type": "date"
+      },
+      {
+        "key": "tangki",
+        "label": "Alokasi jumlah tangki",
+        "type": "integer",
+        "required": true
+      },
+      {
+        "key": "kapasitas",
+        "label": "Kapasitas per tangki (liter)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "key": "harga",
+        "label": "Harga per tangki (Rp)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      }
+    ],
+    "columns": [
+      "tahun",
+      "sumber",
+      "versi",
+      "tanggal",
+      "tangki",
+      "kapasitas"
+    ]
+  },
+  {
+    "id": "air",
+    "unit": "RR",
+    "title": "Distribusi air",
+    "description": "Catat volume dan layanan distribusi per lokasi dan sumber anggaran.",
+    "fields": [
+      {
+        "key": "tanggal",
+        "label": "Tanggal distribusi",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "kecamatan",
+        "label": "Kecamatan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "kelurahan",
+        "label": "Kelurahan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "alamat",
+        "label": "Alamat",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "kk",
+        "label": "Penerima manfaat (KK)",
+        "type": "integer",
+        "required": false
+      },
+      {
+        "key": "tangki",
+        "label": "Jumlah tangki",
+        "type": "integer",
+        "required": true
+      },
+      {
+        "key": "liter",
+        "label": "Jumlah air (liter)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "key": "sumber",
+        "label": "Sumber persediaan / anggaran",
+        "type": "select",
+        "required": true,
+        "options": [
+          "APBD",
+          "APBN",
+          "BTT",
+          "DSP",
+          "CSR",
+          "Donatur",
+          "Lainnya"
+        ]
+      },
+      {
+        "key": "asal",
+        "label": "Asal bantuan / pelaksana",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      }
+    ],
+    "columns": [
+      "tanggal",
+      "kecamatan",
+      "kelurahan",
+      "tangki",
+      "liter",
+      "sumber"
+    ]
+  },
+  {
+    "id": "bantuan",
+    "unit": "RR",
+    "title": "Penyaluran bantuan",
+    "description": "Rincian awal penyaluran; lengkapi sesuai dokumen bantuan yang digunakan.",
+    "fields": [
+      {
+        "key": "tanggal",
+        "label": "Tanggal penyaluran",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "kejadian_id",
+        "label": "Kejadian terkait (opsional)",
+        "type": "kejadian",
+        "required": false
+      },
+      {
+        "key": "nama",
+        "label": "Jenis / nama bantuan",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "kecamatan",
+        "label": "Kecamatan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "kelurahan",
+        "label": "Kelurahan",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "alamat",
+        "label": "Alamat",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "penerima",
+        "label": "Penerima / tujuan",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "jumlah",
+        "label": "Jumlah",
+        "type": "number",
+        "required": true
+      },
+      {
+        "key": "satuan",
+        "label": "Satuan",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "nilai",
+        "label": "Nilai bantuan (Rp)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "key": "sumber",
+        "label": "Sumber persediaan / anggaran",
+        "type": "select",
+        "required": true,
+        "options": [
+          "APBD",
+          "APBN",
+          "BTT",
+          "DSP",
+          "CSR",
+          "Donatur",
+          "Lainnya"
+        ]
+      },
+      {
+        "key": "referensi",
+        "label": "Nomor dokumen",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "catatan",
+        "label": "Keterangan",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      }
+    ],
+    "columns": [
+      "tanggal",
+      "nama",
+      "penerima",
+      "jumlah",
+      "satuan",
+      "sumber"
+    ]
+  },
+  {
+    "id": "riwayat_logistik",
+    "unit": "KL",
+    "title": "Riwayat logistik sumber",
+    "description": "Transaksi sumber. Tanggal keluar adalah tanggal laporan; tidak memperbarui stok operasional.",
+    "columns": [
+      "arah",
+      "tanggal",
+      "nama",
+      "jumlah",
+      "sumber",
+      "kejadian_ref"
+    ],
+    "fields": [
+      {
+        "key": "arah",
+        "label": "Arah",
+        "type": "select",
+        "options": [
+          "Masuk",
+          "Keluar"
+        ],
+        "required": true
+      },
+      {
+        "key": "tanggal",
+        "label": "Tanggal sumber",
+        "type": "date"
+      },
+      {
+        "key": "nama",
+        "label": "Nama barang",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "barang_ref",
+        "label": "ID barang sumber",
+        "type": "text"
+      },
+      {
+        "key": "jumlah",
+        "label": "Jumlah",
+        "type": "number"
+      },
+      {
+        "key": "sumber",
+        "label": "Sumber anggaran",
+        "type": "text"
+      },
+      {
+        "key": "kejadian_ref",
+        "label": "ID kejadian sumber",
+        "type": "kejadian"
+      },
+      {
+        "key": "kecamatan",
+        "label": "Kecamatan",
+        "type": "text"
+      },
+      {
+        "key": "kelurahan",
+        "label": "Kelurahan",
+        "type": "text"
+      },
+      {
+        "key": "alamat",
+        "label": "Alamat",
+        "type": "text"
+      },
+      {
+        "key": "referensi",
+        "label": "ID transaksi sumber",
+        "type": "text"
+      },
+      {
+        "key": "catatan",
+        "label": "Catatan",
+        "type": "textarea"
+      },
+      {
+        "key": "sumber_data",
+        "label": "Sumber data / baris asal",
+        "type": "textarea"
+      }
+    ]
+  }
+]

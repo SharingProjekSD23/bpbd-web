@@ -61,7 +61,7 @@ export const number = (n: number) => new Intl.NumberFormat('id-ID').format(n);
 export function home(role: Role) { return role === 'PEN' ? '/peneliti' : role === 'ADM' ? '/dashboard' : `/dashboard/${roles[role].slug}`; }
 export function canRead(role: Role, group: string) { return !!groups[group] && role !== 'PEN' && (role === 'ADM' || groups[group].role === role); }
 export function canEdit(store: Store, role: Role, group: string) { return !!groups[group] && (role === 'ADM' ? store.adminOperational : groups[group].role === role); }
-export function isReviewer(store: Store, role: Role) { return ['PK', 'KL', 'RR'].includes(role) && !!store.reviewer[role]; }
+export function isReviewer(store: Store, role: Role) { void store; return role === 'ADM'; }
 export function canVisit(store: Store, role: Role, path: string, accountId?: string) {
   const p = path.split('?')[0];
   if (['/', '/masuk', '/daftar-peneliti', '/pemulihan-akun', '/profil', '/bantuan', '/403', '/404', '/gangguan'].includes(p)) return true;
@@ -76,14 +76,10 @@ export function canVisit(store: Store, role: Role, path: string, accountId?: str
   }
   if (p.startsWith('/peneliti') || p === '/status-akun') return false;
   if (p.startsWith('/admin') || p === '/audit') return role === 'ADM';
-  if (p.startsWith('/persetujuan')) {
-    if (!canReviewOperational(role)) return false;
-    const id = p.split('/')[2];
-    return !id || store.entries.some(e => e.id === id && !e.archived);
-  }
+  if (['/operasional', '/logistik'].some(route => p === route || p.startsWith(route + '/'))) return ['PK','KL','RR','SEK'].includes(role);
+  if (p.startsWith('/persetujuan')) return false;
   if (p.startsWith('/riset')) {
-    const requestRoute = p === '/riset/permohonan' || p.startsWith('/riset/permohonan/');
-    if (requestRoute ? !['ADM','SEK'].includes(role) : !(role === 'SEK' || isReviewer(store, role))) return false;
+    if (!['ADM','SEK'].includes(role)) return false;
     const id = p.split('/')[3];
     return !id || store.research.some(r => r.id === id && (['ADM','SEK'].includes(role) || r.requestedGroups.some(g => groups[g]?.role === role)));
   }
