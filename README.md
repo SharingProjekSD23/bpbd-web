@@ -71,3 +71,15 @@ Data utama dan berkas disimpan di PostgreSQL. Kata sandi memakai hash scrypt dan
 Data awal gabungan mencakup 2.426 catatan operasional dari sumber K1 dan pratinjau K3 yang disetujui pengguna. Konflik sumber, pemetaan saldo logistik, dan arsip permintaan K1 dijelaskan dalam dokumen integrasi. Informasi lama dalam dokumen PRD/prototipe merupakan konteks historis; aturan akses terbaru mengacu pada dokumen integrasi.
 
 Stack: React 19, TypeScript, Next.js/Node.js, PostgreSQL, pg, Drizzle, Tailwind, Shadcn/Radix, Recharts, dan ExcelJS. Konfigurasi Vinext/Vite/Sites lama tetap tersedia, tetapi integrasi ini menggunakan runtime Node.js lokal. Pemulihan password/email, SSO, pemindaian malware, dan pengelolaan server produksi belum disediakan.
+
+## Data demo operasional lokal
+
+Untuk database operasional kosong, jalankan `npm.cmd run db:seed-demo`.
+Script menambahkan 31 catatan simulasi berlabel DEMO: barang, transaksi tiga bulan,
+stok opname, dan kegiatan tiap bidang. Angka stok awal mengacu pada dokumentasi
+integrasi K1 (240 pcs, 38 dus, 71 paket); nama barang, tanggal, transaksi, batas
+minimum, dan kegiatan adalah simulasi, bukan pemulihan riwayat asli. Transaksi
+simulasi menghasilkan saldo 250 pcs, 48 dus, dan 81 paket serta satu peringatan stok.
+Script menolak database yang sudah memiliki catatan operasional di luar dataset
+demo ini dan tidak menimpa catatan yang ada. Pengulangan tidak menggandakan data.
+Akun, penelitian, serta izin akses tetap memakai konfigurasi yang sudah ada.

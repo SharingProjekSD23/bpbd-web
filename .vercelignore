@@ -1,0 +1,12 @@
+.env*
+!.env.example
+.git
+.next
+.sites-runtime
+.openai
+backups
+outputs
+work
+test-results
+playwright-report
+node_modules

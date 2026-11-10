@@ -12,7 +12,7 @@ const jsonOptions=(method,body)=>({method,headers:{'Content-Type':'application/j
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;setTimeout(()=>$('#toast').hidden=true,5000);}
 function error(message){$('#error').textContent=message;$('#error').hidden=false;}
 const mod=id=>modules.find(m=>m.id===id);
-const visibleModules=u=>modules.filter(m=>m.unit===u);
+const visibleModules=u=>modules.filter(m=>m.unit===u&&m.visibleInWorkspace!==false);
 const own=()=>visibleModules(unit);
 function rows(id){return (records[id]||[]).filter(r=>id==='barang'||!year||String(r.tahun||r.tanggal?.slice(0,4)||r.rencana?.slice(0,4)||'')===year);}
 const sum=(rs,k)=>rs.filter(r=>present(r[k])).reduce((a,r)=>a+Number(r[k]),0);
@@ -21,7 +21,7 @@ function display(id,key,value){if(!present(value))return '—';if(key==='barang'
 function badge(v){return `<span class="badge ${['Selesai','Ya'].includes(v)?'good':['Ditunda','Belum','Di bawah batas'].includes(v)?'warn':''}">${esc(fmt(v))}</span>`;}
 function kpis(items){return items.map(([label,value,note])=>`<article class="kpi"><small>${esc(label)}</small><b>${esc(fmt(value))}</b><span>${esc(note||'')}</span></article>`).join('');}
 async function load(){const b=$('#refresh');b.disabled=true;$('#error').hidden=true;try{config=await api('/config');modules=config.modules;const result=await Promise.all(modules.map(m=>api('/records/'+m.id)));records={...Object.fromEntries(['dokumen','pencegahan','kejadian','barang','masuk','keluar','opname','btt','alokasi','air','bantuan','riwayat_logistik'].map(k=>[k,[]])),...Object.fromEntries(modules.map((m,i)=>[m.id,result[i]]))};[stock,attachments]=await Promise.all([api('/stock'),api('/attachments')]);$('#workspace-label').textContent=config.workspace==='demo'?'Demonstrasi · simulasi':'Operasional · data lokal';$('#mode-badge').textContent=config.workspace==='demo'?'DEMO':'OPERASIONAL';$('#mode-badge').className='badge '+(config.workspace==='demo'?'orange':'good');$('#demo-notice').hidden=config.workspace!=='demo';$('#storage-label').textContent=config.storage;render();}catch(e){error(e.message);}finally{b.disabled=false;}}
-function selectUnit(u){unit=u;query='';year='';page=0;tab=['HOME','SOURCE'].includes(u)?'':modules.find(m=>m.unit===u)?.id;$('#sidebar').classList.remove('open');render();}
+function selectUnit(u){if(!['HOME','SOURCE'].includes(u)&&!visibleModules(u).length)return;unit=u;query='';year='';page=0;tab=['HOME','SOURCE'].includes(u)?'':visibleModules(u)[0]?.id;$('#sidebar').classList.remove('open');render();}
 function renderContent(){if(!modules.length)return;$$('#unit-nav button').forEach(b=>b.classList.toggle('active',b.dataset.unit===unit));$('#home').hidden=unit!=='HOME';$('#work').hidden=unit==='HOME';$('#crumb').textContent=unit==='HOME'?'Ringkasan':unit==='SOURCE'?'Arsip sumber':units[unit].name;
  if(unit==='HOME'){renderHome();return;}
  $('#unit-label').textContent='RUANG KERJA / '+units[unit].name.toUpperCase();$('#page-title').textContent=units[unit].name;$('#page-subtitle').textContent=units[unit].sub;$('#unit-summary').innerHTML=kpis(unitKpis(unit));

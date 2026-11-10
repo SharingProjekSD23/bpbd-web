@@ -5,7 +5,7 @@ import type { PoolClient } from 'pg';
 import { getPool } from '../../db/index.ts';
 import { ApiError, requireThat } from '../server/policy.ts';
 import { account, checkOrigin, boundedBytes } from './auth.ts';
-import { modules, internal, canReadModule, canWriteModule, allowed, visibleRow, prepareBatch, validate, checkStock, stockOf, type Row } from './domain.ts';
+import { modules, internal, canReadModule, canWriteModule, ownerOf, allowed, visibleRow, prepareBatch, validate, checkStock, stockOf, type Row } from './domain.ts';
 import { readRecords, saveRecord, audit } from './repository.ts';
 import { parseSheet, exportSheet } from './spreadsheets.ts';
 
@@ -47,7 +47,7 @@ export async function handleOperations(request: Request) {
         'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; object-src 'none'" } });
     } else if (kind === 'config' && request.method === 'GET') {
       result = json({ workspace: 'operasional', storage: 'PostgreSQL lokal', version: 'integrasi-1', actor: { name: actor.name, role: actor.role },
-        modules: modules.filter(m => canReadModule(actor.role, m.id)).map(m => ({ ...m, writable: canWriteModule(actor.role, m.id) })) });
+        modules: modules.filter(m => canReadModule(actor.role, m.id)).map(m => ({ ...m, visibleInWorkspace: actor.role === 'SEK' || actor.role === ownerOf(m.id), writable: canWriteModule(actor.role, m.id) })) });
     } else {
       const records = await readRecords(client);
       const visible = (m: string) => records[m].map(r => visibleRow(actor.role, r));

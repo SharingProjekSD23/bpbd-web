@@ -49,6 +49,11 @@ test('Single login protects API and assets; role scopes cover every module',asyn
   for(const role of ['PK','KL','RR','SEK']){
     const config=await ok(role,'config');
     assert.deepEqual(config.modules.map(m=>m.id), modules.filter(m=>canReadModule(role,m.id)).map(m=>m.id));
+    assert.deepEqual([...new Set(config.modules.filter(m => m.visibleInWorkspace).map(m => m.unit))].sort(), role === 'SEK' ? ['KL', 'PK', 'RR', 'SK'] : [role]);
+    assert.ok(config.modules.filter(m => m.writable).every(m => m.unit === (role === 'SEK' ? 'SK' : role)));
+    const dashboard = await ok(role, 'dashboard');
+    assert.equal(dashboard.writable, role === 'KL');
+    for (const id of ['barang', 'masuk', 'keluar', 'opname']) assert.ok(Array.isArray(dashboard.records[id]));
     for(const m of modules){
       assert.equal((await call(role,'records/'+m.id)).status,canReadModule(role,m.id)?200:403);
       if(!canWriteModule(role,m.id)) assert.equal((await call(role,'records/'+m.id,'POST',{})).status,403);

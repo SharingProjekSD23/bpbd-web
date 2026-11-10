@@ -6,17 +6,20 @@ import { seedStore } from '../lib/bpbd/model.ts';
 import { writeStore } from '../lib/server/repository.ts';
 
 async function main() {
-  const database = process.env.PGDATABASE;
-  if (!database || !/^[a-z][a-z0-9_]{0,62}$/.test(database)) throw new Error('PGDATABASE harus nama database sederhana, misalnya bpbd_local.');
-  const admin = new pg.Client({ database: 'postgres', connectionTimeoutMillis: 5000 });
-  try {
-    await admin.connect();
-    const exists = await admin.query('SELECT 1 FROM pg_database WHERE datname=$1', [database]);
-    if (!exists.rowCount) {
-      await admin.query(`CREATE DATABASE "${database}"`);
-      console.log(`Database ${database} dibuat.`);
-    } else console.log(`Database ${database} sudah tersedia; data yang ada dipertahankan.`);
-  } finally { await admin.end(); }
+  // Cloud databases are provisioned by the provider; do not CREATE DATABASE there.
+  if (!process.env.DATABASE_URL) {
+    const database = process.env.PGDATABASE;
+    if (!database || !/^[a-z][a-z0-9_]{0,62}$/.test(database)) throw new Error('PGDATABASE harus nama database sederhana, misalnya bpbd_local.');
+    const admin = new pg.Client({ database: 'postgres', connectionTimeoutMillis: 5000 });
+    try {
+      await admin.connect();
+      const exists = await admin.query('SELECT 1 FROM pg_database WHERE datname=$1', [database]);
+      if (!exists.rowCount) {
+        await admin.query(`CREATE DATABASE "${database}"`);
+        console.log(`Database ${database} dibuat.`);
+      } else console.log(`Database ${database} sudah tersedia; data yang ada dipertahankan.`);
+    } finally { await admin.end(); }
+  }
   await migrate(getDb(), { migrationsFolder: './drizzle/postgresql' });
   const client = await getPool().connect();
   try {
